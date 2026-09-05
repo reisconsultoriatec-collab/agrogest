@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+<title>AgroGest — Gestão do Campo</title>
+<meta name="theme-color" content="#1A2744">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AgroGest">
+<meta name="application-name" content="AgroGest">
+<meta name="description" content="Sistema de Gestão do Campo — Pecuária e Agricultura">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A2744'/%3E%3Cpath d='M9 20c0-6 4-11 7-11s7 5 7 11-3 6-7 6-7-2-7-6z' fill='%23F59E0B'/%3E%3Ccircle cx='13' cy='16' r='1.4' fill='%231A2744'/%3E%3Ccircle cx='19' cy='16' r='1.4' fill='%231A2744'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='30' fill='%231A2744'/%3E%3Cpath d='M50 112c0-33 22-62 40-62s40 29 40 62-17 34-40 34-40-11-40-34z' fill='%23F59E0B' opacity='.9'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root,[data-theme="light"]{--navy:#1A2744;--navy-light:#243352;--navy-hover:#2D3F63;--amber:#F59E0B;--amber-light:#FCD34D;--amber-dark:#D97706;--bg:#F1F5F9;--card:#FFFFFF;--text:#1E293B;--text-secondary:#64748B;--text-muted:#94A3B8;--border:#E2E8F0;--success:#10B981;--success-bg:#D1FAE5;--danger:#EF4444;--danger-bg:#FEE2E2;--warning:#F59E0B;--warning-bg:#FEF3C7;--info:#3B82F6;--info-bg:#DBEAFE;--purple:#8B5CF6;--purple-bg:#EDE9FE;--teal:#14B8A6;--teal-bg:#CCFBF1;--coral:#F97316;--coral-bg:#FFF7ED;--input-bg:#fff;--hover-row:rgba(245,158,11,.03)}
+[data-theme="dark"]{--navy:#0F172A;--navy-light:#1E293B;--navy-hover:#334155;--bg:#0F172A;--card:#1E293B;--text:#E2E8F0;--text-secondary:#94A3B8;--text-muted:#64748B;--border:#334155;--success-bg:rgba(16,185,129,.15);--danger-bg:rgba(239,68,68,.15);--warning-bg:rgba(245,158,11,.15);--info-bg:rgba(59,130,246,.15);--purple-bg:rgba(139,92,246,.15);--teal-bg:rgba(20,184,166,.15);--coral-bg:rgba(249,115,22,.15);--input-bg:#0F172A;--hover-row:rgba(245,158,11,.06)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
+
+/* SIDEBAR (padrão EduGest/CondoGest) */
+.sidebar{width:260px;background:#1A2744;color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .3s}
+[data-theme="dark"] .sidebar{background:#0B1120}
+.sidebar-header{padding:20px;border-bottom:1px solid rgba(255,255,255,.1)}
+.sidebar-logo{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--amber);display:flex;align-items:center;gap:10px}
+.sidebar-logo i{font-size:28px}
+.sidebar-subtitle{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px;letter-spacing:.5px}
+.sidebar-user{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:10px}
+.sidebar-avatar{width:36px;height:36px;border-radius:50%;background:var(--amber);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#1A2744;flex-shrink:0}
+.sidebar-user-info{flex:1;min-width:0}
+.sidebar-user-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-user-role{font-size:11px;color:var(--amber)}
+.sidebar-nav{flex:1;overflow-y:auto;padding:12px 0}
+.nav-section{margin-bottom:2px}
+.nav-section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.35);padding:10px 20px 6px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;transition:color .15s}
+.nav-section-title:hover{color:rgba(255,255,255,.6)}
+.nav-section-title i{font-size:14px;transition:transform .25s}
+.nav-section-title.collapsed i{transform:rotate(-90deg)}
+.nav-section-items{overflow:hidden;transition:max-height .3s ease,opacity .25s ease;max-height:500px;opacity:1}
+.nav-section-items.collapsed{max-height:0;opacity:0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;transition:all .15s;color:rgba(255,255,255,.7);font-size:13px;border-left:3px solid transparent}
+.nav-item:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.08);color:var(--amber);border-left-color:var(--amber)}
+.nav-item i{font-size:18px;width:20px;text-align:center}
+.nav-item .badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.nav-item .badge-soon{margin-left:auto;background:rgba(255,255,255,.12);color:rgba(255,255,255,.5);font-size:9px;padding:2px 6px;border-radius:8px;font-weight:600;text-transform:uppercase}
+.sidebar-footer{padding:14px 20px;border-top:1px solid rgba(255,255,255,.1)}
+.sidebar-footer .nav-item{padding:9px 0}
+.sidebar-footer .nav-item.logout:hover{color:var(--danger)}
+
+/* MAIN + TOPBAR */
+.main{margin-left:260px;flex:1;min-height:100vh}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 28px;height:60px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:50;transition:background .3s}
+.topbar-left{display:flex;align-items:center;gap:14px;min-width:0;flex-shrink:0}
+.topbar-center{flex:1;display:flex;justify-content:center;max-width:480px;margin:0 auto}
+.topbar-search{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 14px;cursor:pointer;transition:all .2s;width:100%}
+.topbar-search:hover{border-color:var(--amber);background:var(--card)}
+.topbar-search i{color:var(--text-muted);font-size:16px}
+.topbar-search span{flex:1;font-size:13px;color:var(--text-muted);white-space:nowrap;overflow:hidden}
+.pw-wrap{position:relative}
+.pw-wrap .form-input{padding-right:38px}
+.pw-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:2px;display:flex;align-items:center;transition:color .15s}
+.pw-toggle:hover{color:var(--amber)}
+.topbar-title{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;color:var(--text)}
+.menu-toggle{display:none;background:none;border:none;font-size:22px;color:var(--text);cursor:pointer}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.topbar-btn{background:none;border:1px solid var(--border);border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-secondary);font-size:17px;transition:all .15s;position:relative}
+.topbar-btn:hover{border-color:var(--amber);color:var(--amber)}
+.topbar-avatar{width:38px;height:38px;border-radius:50%;background:var(--amber);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#1A2744;cursor:default}
+.content{padding:24px 28px}
+
+/* CARDS, KPI, TABLES, FORMS, MODALS, BUTTONS, SEARCH, FILTERS, TABS, STATUS BADGES */
+.card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:20px;margin-bottom:20px;transition:background .3s,border-color .3s}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.card-title{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
+.card-title i{color:var(--amber)}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:18px;display:flex;align-items:flex-start;gap:14px;transition:transform .15s,box-shadow .15s,background .3s;cursor:default}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.06)}
+.kpi-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.kpi-info{flex:1}
+.kpi-label{font-size:12px;color:var(--text-secondary);margin-bottom:4px}
+.kpi-value{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:var(--text);line-height:1}
+.kpi-change{font-size:11px;margin-top:4px;display:flex;align-items:center;gap:4px}
+.kpi-change.up{color:var(--success)}.kpi-change.down{color:var(--danger)}
+.table-container{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;padding:10px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:2px solid var(--border);background:var(--bg)}
+tbody td{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border)}
+tbody tr:hover{background:var(--hover-row)}
+.status-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;display:inline-block}
+.status-ativo,.status-active,.status-pago,.status-paid{background:var(--success-bg);color:#065F46}.status-inativo,.status-inactive,.status-vencido,.status-overdue,.status-morto{background:var(--danger-bg);color:#991B1B}
+.status-pendente,.status-pending{background:var(--warning-bg);color:#92400E}.status-vendido{background:var(--purple-bg);color:#5B21B6}
+.status-recria,.status-engorda{background:var(--info-bg);color:#1E40AF}
+.btn{padding:8px 18px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;font-family:'Inter',sans-serif;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn-primary{background:var(--amber);color:#1A2744}.btn-primary:hover{background:var(--amber-dark)}
+.btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{border-color:var(--amber)}
+.btn-danger{background:var(--danger);color:#fff}.btn-danger:hover{background:#DC2626}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-icon{padding:6px 8px;background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--text-secondary);font-size:16px;transition:all .15s}
+.btn-icon:hover{border-color:var(--amber);color:var(--amber)}
+.form-group{margin-bottom:16px}.form-label{display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.form-input,.form-select,.form-textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;color:var(--text);background:var(--input-bg);transition:border-color .15s}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,158,11,.1)}
+.form-textarea{min-height:80px;resize:vertical}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:14px;width:95%;max-width:600px;max-height:90vh;overflow-y:auto}
+.modal-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;color:var(--text)}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted)}.modal-close:hover{color:var(--danger)}
+.modal-body{padding:22px}.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:16px}
+.search-box i{color:var(--text-muted);font-size:16px}
+.search-box input{border:none;background:none;flex:1;font-size:13px;font-family:'Inter',sans-serif;color:var(--text);outline:none}
+.filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.filter-chip{padding:5px 14px;border-radius:20px;border:1px solid var(--border);font-size:12px;cursor:pointer;background:var(--card);color:var(--text-secondary);transition:all .15s}
+.filter-chip:hover,.filter-chip.active{background:var(--amber);color:#1A2744;border-color:var(--amber);font-weight:600}
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px}
+.tab{padding:10px 20px;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text-secondary);transition:all .15s}
+.tab:hover{color:var(--text)}.tab.active{color:var(--amber);border-bottom-color:var(--amber)}
+.empty-state{text-align:center;padding:48px 20px;color:var(--text-muted)}
+.empty-state i{font-size:48px;margin-bottom:12px;display:block;color:var(--border)}
+.empty-state p{font-size:14px;margin-bottom:16px}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-mini{text-align:center;padding:12px;background:var(--card);border-radius:10px;border:1px solid var(--border)}
+.stat-mini-value{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700}
+.stat-mini-label{font-size:11px;color:var(--text-secondary);margin-top:2px}
+.notif-dropdown{display:none;position:absolute;top:calc(100% + 8px);right:0;width:320px;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:60;overflow:hidden}
+.notif-dropdown.open{display:block}
+.notif-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.notif-header-title{font-size:13px;font-weight:600;color:var(--text)}
+.notif-list{max-height:300px;overflow-y:auto}
+.notif-item{padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;display:flex;align-items:flex-start;gap:10px}
+.notif-item:last-child{border-bottom:none}
+.notif-empty{padding:24px;text-align:center;color:var(--text-muted);font-size:13px}
+.topbar-btn .notif-badge{position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:var(--danger)}
+.offline-banner{display:none;background:var(--warning-bg);color:#92400E;font-size:12px;padding:8px 28px;align-items:center;gap:8px}
+.offline-banner.show{display:flex}
+.brinco-code{font-size:11px;color:var(--amber);font-weight:700;letter-spacing:.5px;background:var(--bg);padding:2px 8px;border-radius:6px;border:1px solid var(--border)}
+.user-role-badge{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+/* Auth */
+.auth-container{display:flex;align-items:center;justify-content:center;min-height:100vh;width:100vw;background:var(--bg);position:fixed;inset:0;z-index:10}
+.auth-card{max-width:420px;width:100%;background:var(--card);border-radius:16px;border:1px solid var(--border);padding:40px 32px;text-align:center}
+.auth-card h2{font-family:'Space Grotesk',sans-serif;color:var(--text);margin-bottom:4px}
+.auth-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:20px}
+.auth-tab{flex:1;padding:10px;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;color:var(--text-secondary);transition:all .15s}
+.auth-tab.active{color:var(--amber);border-bottom-color:var(--amber)}
+.auth-error{color:var(--danger);font-size:12px;margin-top:10px;display:none}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--text-muted);font-size:12px}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+/* Loading */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.7);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:16px;color:#fff}
+.loading-overlay.open{display:flex}
+.loading-overlay .spinner{border-color:rgba(255,255,255,.2);border-top-color:var(--amber);width:40px;height:40px}
+.page{display:none;animation:fadeIn .25s}.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--amber);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.skeleton-row{display:flex;gap:14px;padding:12px 14px;border-bottom:1px solid var(--border);animation:skeletonPulse 1.2s ease-in-out infinite}
+.skeleton-cell{height:14px;border-radius:6px;background:var(--border)}
+.skeleton-cell.w-sm{width:50px}.skeleton-cell.w-md{width:120px}.skeleton-cell.w-lg{width:200px}.skeleton-cell.w-badge{width:60px;height:22px;border-radius:12px}
+@keyframes skeletonPulse{0%{opacity:1}50%{opacity:.4}100%{opacity:1}}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99}
+.sidebar-overlay.open{display:block}
+@media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.menu-toggle{display:block}.content{padding:16px}.form-row,.form-row-3{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr 1fr}.topbar{padding:0 12px;gap:8px}.topbar-center{max-width:none}.topbar-search span{display:none}.topbar-search{width:40px;padding:8px;justify-content:center}.stats-row{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.kpi-grid{grid-template-columns:1fr}}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+@media print{.sidebar,.topbar,.btn,.search-box,.filter-bar,.modal-overlay{display:none!important}.main{margin-left:0}.content{padding:0}.card{border:none;box-shadow:none;break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><span id="loadingMsg">Carregando...</span></div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar" style="display:none">
+  <div class="sidebar-header">
+    <div class="sidebar-logo"><i class="ti ti-paw"></i> AgroGest</div>
+    <div class="sidebar-subtitle" id="sidebarFazendaNome">Gestão do Campo</div>
+  </div>
+  <div class="sidebar-user">
+    <div class="sidebar-avatar" id="sidebarAvatar">A</div>
+    <div class="sidebar-user-info">
+      <div class="sidebar-user-name" id="sidebarUserName">Usuário</div>
+      <div class="sidebar-user-role" id="sidebarUserRole">Admin</div>
+    </div>
+  </div>
+  <!-- Seletor de Fazenda -->
+  <div style="padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.1)">
+    <select class="form-select" id="selectorFazenda" onchange="switchFazenda(this.value)" style="background:#1E293B;color:#fff;border-color:rgba(255,255,255,.15);font-size:12px;padding:8px 10px;border-radius:8px;width:100%">
+      <option>Carregando...</option>
+    </select>
+    <button style="width:100%;margin-top:6px;padding:6px;background:none;border:1px dashed rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.5);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;transition:all .15s" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)'" onmouseout="this.style.borderColor='rgba(255,255,255,.2)';this.style.color='rgba(255,255,255,.5)'" onclick="openModal('modalNovaFazenda')">
+      <i class="ti ti-plus" style="font-size:14px"></i> Nova Fazenda
+    </button>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">
+      <div class="nav-section-title" onclick="toggleSection(this)"><span>PRINCIPAL</span><i class="ti ti-chevron-down"></i></div>
+      <div class="nav-section-items">
+        <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')"><i class="ti ti-dashboard"></i> Dashboard</div>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title collapsed" onclick="toggleSection(this)"><span>PECUÁRIA</span><i class="ti ti-chevron-down"></i></div>
+      <div class="nav-section-items collapsed">
+        <div class="nav-item" data-page="animais" onclick="navigate('animais')"><i class="ti ti-paw"></i> Rebanho</div>
+        <div class="nav-item" data-page="manejo" onclick="navigate('manejo')"><i class="ti ti-clipboard-check"></i> Manejo de Curral</div>
+        <div class="nav-item" data-page="reproducao" onclick="navigate('reproducao')"><i class="ti ti-heartbeat"></i> Reprodução<span class="badge-soon">Fase 2</span></div>
+        <div class="nav-item" data-page="sanidade" onclick="navigate('sanidade')"><i class="ti ti-shield-plus"></i> Sanidade<span class="badge-soon">Fase 2</span></div>
+        <div class="nav-item" data-page="nutricao" onclick="navigate('nutricao')"><i class="ti ti-apple"></i> Nutrição<span class="badge-soon">Fase 2</span></div>
+        <div class="nav-item" data-page="pastagens" onclick="navigate('pastagens')"><i class="ti ti-map-2"></i> Pastagens<span class="badge-soon">Fase 2</span></div>
+        <div class="nav-item" data-page="ordenha" onclick="navigate('ordenha')"><i class="ti ti-droplet"></i> Ordenha e Leite<span class="badge-soon">Fase 2</span></div>
+        <div class="nav-item" data-page="gps" onclick="navigate('gps')"><i class="ti ti-map-pin"></i> Rastreamento GPS<span class="badge-soon">Fase 4</span></div>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title collapsed" onclick="toggleSection(this)"><span>AGRICULTURA</span><i class="ti ti-chevron-down"></i></div>
+      <div class="nav-section-items collapsed">
+        <div class="nav-item" data-page="talhoes" onclick="navigate('talhoes')"><i class="ti ti-map"></i> Talhões<span class="badge-soon">Fase 3</span></div>
+        <div class="nav-item" data-page="safras" onclick="navigate('safras')"><i class="ti ti-leaf"></i> Safras<span class="badge-soon">Fase 3</span></div>
+        <div class="nav-item" data-page="insumos" onclick="navigate('insumos')"><i class="ti ti-package"></i> Insumos<span class="badge-soon">Fase 3</span></div>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title collapsed" onclick="toggleSection(this)"><span>FINANCEIRO</span><i class="ti ti-chevron-down"></i></div>
+      <div class="nav-section-items collapsed">
+        <div class="nav-item" data-page="contas" onclick="navigate('contas')"><i class="ti ti-file-invoice"></i> Contas<span class="badge" id="badgeVencidas" style="display:none">0</span></div>
+        <div class="nav-item" data-page="fluxo" onclick="navigate('fluxo')"><i class="ti ti-chart-arrows-vertical"></i> Fluxo de Caixa</div>
+        <div class="nav-item" data-page="comprasvendas" onclick="navigate('comprasvendas')"><i class="ti ti-replace"></i> Compra/Venda de Animais<span class="badge-soon">Fase 2</span></div>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title collapsed" onclick="toggleSection(this)"><span>RELATÓRIOS</span><i class="ti ti-chevron-down"></i></div>
+      <div class="nav-section-items collapsed">
+        <div class="nav-item" data-page="relatorios" onclick="navigate('relatorios')"><i class="ti ti-report-analytics"></i> Indicadores</div>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title collapsed" onclick="toggleSection(this)"><span>SISTEMA</span><i class="ti ti-chevron-down"></i></div>
+      <div class="nav-section-items collapsed">
+        <div class="nav-item" data-page="config" onclick="navigate('config')"><i class="ti ti-settings"></i> Configurações</div>
+        <div class="nav-item" data-page="usuarios" onclick="navigate('usuarios')"><i class="ti ti-users-group"></i> Usuários</div>
+      </div>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="nav-item logout" onclick="doLogout()"><i class="ti ti-logout"></i> Sair</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main" id="mainContent">
+  <div class="offline-banner" id="offlineBanner"><i class="ti ti-cloud-off"></i> Sem conexão — os registros feitos agora serão sincronizados automaticamente quando a internet voltar.</div>
+  <div class="topbar" id="topbar" style="display:none">
+    <div class="topbar-left">
+      <button class="menu-toggle" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
+      <div class="topbar-title" id="topbarTitle">Dashboard</div>
+    </div>
+    <div class="topbar-center">
+      <div class="topbar-search" onclick="showToast('Busca global — em breve','ti-search')" title="Busca rápida">
+        <i class="ti ti-search"></i><span>Buscar animais, módulos...</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="topbar-btn" title="Tema" onclick="toggleTheme()"><i class="ti ti-moon" id="themeIcon"></i></button>
+      <div style="position:relative">
+        <button class="topbar-btn" title="Notificações" onclick="toggleNotifications()">
+          <i class="ti ti-bell"></i><span class="notif-badge" id="notifBadge" style="display:none"></span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-header"><span class="notif-header-title">Notificações</span><button style="background:none;border:none;font-size:11px;color:var(--amber);cursor:pointer;font-weight:600" onclick="clearNotifications()">Limpar</button></div>
+          <div class="notif-list" id="notifList"><div class="notif-empty"><i class="ti ti-bell-off" style="font-size:24px;display:block;margin-bottom:6px"></i>Nenhuma notificação</div></div>
+        </div>
+      </div>
+      <div class="topbar-avatar" id="topbarAvatar">A</div>
+    </div>
+  </div>
+
+  <!-- AUTH PAGE -->
+  <div class="page" id="page-auth" style="display:flex">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div style="font-size:48px;color:var(--amber);margin-bottom:8px"><i class="ti ti-paw"></i></div>
+        <h2>AgroGest</h2>
+        <p style="color:var(--text-muted);font-size:13px;margin-bottom:20px">Gestão do Campo — Pecuária e Agricultura</p>
+        <div class="auth-tabs">
+          <div class="auth-tab active" onclick="switchAuthTab('login')">Entrar</div>
+          <div class="auth-tab" onclick="switchAuthTab('register')">Criar conta</div>
+        </div>
+        <div id="authLogin">
+          <div class="form-group" style="text-align:left"><label class="form-label">E-mail</label><input type="email" class="form-input" id="loginEmail" placeholder="seu@email.com" autocomplete="username"></div>
+          <div class="form-group" style="text-align:left"><label class="form-label">Senha</label><div class="pw-wrap"><input type="password" class="form-input" id="loginPassword" placeholder="••••••••" autocomplete="current-password"><button type="button" class="pw-toggle" onclick="togglePw(this)" tabindex="-1"><i class="ti ti-eye"></i></button></div></div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="doLogin()"><i class="ti ti-login"></i> Entrar</button>
+          <p style="font-size:12px;color:var(--text-muted);margin-top:12px;cursor:pointer" onclick="resetPassword()">Esqueceu a senha?</p>
+        </div>
+        <div id="authRegister" style="display:none">
+          <div class="form-group" style="text-align:left"><label class="form-label">Nome completo</label><input type="text" class="form-input" id="regNome" maxlength="100" placeholder="Seu nome"></div>
+          <div class="form-group" style="text-align:left"><label class="form-label">E-mail</label><input type="email" class="form-input" id="regEmail" placeholder="seu@email.com" autocomplete="off"></div>
+          <div class="form-group" style="text-align:left"><label class="form-label">Senha (mín. 8 caracteres, 1 maiúscula, 1 número)</label><div class="pw-wrap"><input type="password" class="form-input" id="regPassword" placeholder="••••••••" autocomplete="new-password"><button type="button" class="pw-toggle" onclick="togglePw(this)" tabindex="-1"><i class="ti ti-eye"></i></button></div></div>
+          <div class="auth-divider">Vincular a uma fazenda</div>
+          <div class="form-group" style="text-align:left"><label class="form-label">Código da fazenda (se já existir)</label><input type="text" class="form-input" id="regFazendaCode" maxlength="30" placeholder="Deixe vazio para criar nova" autocomplete="off"></div>
+          <div class="form-group" style="text-align:left"><label class="form-label">Nome da nova fazenda</label><input type="text" class="form-input" id="regFazendaNome" maxlength="120" placeholder="Ex: Fazenda Santa Fé"></div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="doRegister()"><i class="ti ti-user-plus"></i> Criar conta</button>
+        </div>
+        <!-- AGUARDANDO APROVAÇÃO -->
+        <div id="authPending" style="display:none">
+          <div style="font-size:40px;color:var(--warning);margin-bottom:12px"><i class="ti ti-clock-hour-4"></i></div>
+          <p style="font-size:14px;margin-bottom:16px">Seu cadastro foi enviado. Aguarde a aprovação do administrador da fazenda.</p>
+          <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="checkPendingStatus()"><i class="ti ti-refresh"></i> Verificar novamente</button>
+          <p style="font-size:12px;color:var(--text-muted);margin-top:14px;cursor:pointer" onclick="backToLogin()">Voltar ao login</p>
+        </div>
+        <p class="auth-error" id="authError"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="page" id="page-dashboard">
+    <div class="content">
+      <div class="kpi-grid" id="dashKpis"></div>
+      <div class="form-row">
+        <div class="card"><div class="card-header"><div class="card-title"><i class="ti ti-chart-pie"></i> Rebanho por Categoria</div></div><canvas id="chartCategorias" height="200"></canvas></div>
+        <div class="card"><div class="card-header"><div class="card-title"><i class="ti ti-activity"></i> Atividade Recente</div></div><div id="dashActivity"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REBANHO / ANIMAIS -->
+  <div class="page" id="page-animais">
+    <div class="content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-paw"></i> Rebanho</div>
+          <button class="btn btn-primary btn-sm" onclick="document.getElementById('modalAnimalTitle').textContent='Novo Animal';clearAnimalForm();openModal('modalAnimal')"><i class="ti ti-plus"></i> Novo Animal</button>
+        </div>
+        <div class="search-box"><i class="ti ti-search"></i><input type="text" id="searchAnimal" placeholder="Buscar por brinco/chip ou nome..." oninput="filterAnimais()"></div>
+        <div class="filter-bar">
+          <div class="filter-chip active" onclick="filterAnimalStatus(this,'todos')">Todos</div>
+          <div class="filter-chip" onclick="filterAnimalStatus(this,'ativo')">Ativos</div>
+          <div class="filter-chip" onclick="filterAnimalStatus(this,'vendido')">Vendidos</div>
+          <div class="filter-chip" onclick="filterAnimalStatus(this,'morto')">Baixados</div>
+        </div>
+        <div class="table-container"><table><thead><tr><th>Brinco/Chip</th><th>Categoria</th><th>Raça</th><th>Sexo</th><th>Peso Atual</th><th>Status</th><th></th></tr></thead><tbody id="tbAnimais"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MANEJO DE CURRAL -->
+  <div class="page" id="page-manejo">
+    <div class="content">
+      <div class="card" style="background:var(--info-bg);border:none">
+        <div style="display:flex;gap:10px;align-items:flex-start;color:#1E40AF;font-size:12px"><i class="ti ti-info-circle" style="font-size:18px;margin-top:1px"></i><span>Os registros de manejo funcionam <strong>offline</strong>: você pode lançar pesagens, vacinas e movimentações no curral sem internet — a sincronização acontece sozinha assim que a conexão voltar.</span></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-clipboard-check"></i> Registros de Manejo</div>
+          <button class="btn btn-primary btn-sm" onclick="clearManejoForm();openModal('modalManejo')"><i class="ti ti-plus"></i> Novo Registro</button>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-chip active" onclick="filterManejoTipo(this,'todos')">Todos</div>
+          <div class="filter-chip" onclick="filterManejoTipo(this,'pesagem')">Pesagem</div>
+          <div class="filter-chip" onclick="filterManejoTipo(this,'vacina')">Vacina/Tratamento</div>
+          <div class="filter-chip" onclick="filterManejoTipo(this,'movimentacao')">Movimentação</div>
+        </div>
+        <div class="table-container"><table><thead><tr><th>Data</th><th>Animal</th><th>Tipo</th><th>Detalhe</th><th>Registrado por</th><th></th></tr></thead><tbody id="tbManejo"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTAS (FINANCEIRO) -->
+  <div class="page" id="page-contas">
+    <div class="content">
+      <div class="kpi-grid" id="contasKpis"></div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-calculator"></i> Custo por Arroba</div></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Despesas do período (R$)</label><input type="number" step="0.01" class="form-input" id="custoDespesas" placeholder="Ex: 45000"></div>
+          <div class="form-group"><label class="form-label">Arrobas produzidas no período</label><input type="number" step="0.01" class="form-input" id="custoArrobas" placeholder="Ex: 900"></div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="calcularCustoArroba()"><i class="ti ti-refresh"></i> Calcular</button>
+        <div id="custoArrobaResultado" style="margin-top:12px;font-size:14px"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-file-invoice"></i> Contas a Pagar / Receber</div>
+          <button class="btn btn-primary btn-sm" onclick="clearContaForm();openModal('modalConta')"><i class="ti ti-plus"></i> Nova Conta</button>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-chip active" onclick="filterContaStatus(this,'todos')">Todas</div>
+          <div class="filter-chip" onclick="filterContaStatus(this,'pendente')">Em aberto</div>
+          <div class="filter-chip" onclick="filterContaStatus(this,'pago')">Pagas</div>
+          <div class="filter-chip" onclick="filterContaStatus(this,'vencido')">Vencidas</div>
+        </div>
+        <div class="table-container"><table><thead><tr><th>Descrição</th><th>Tipo</th><th>Categoria</th><th>Valor</th><th>Vencimento</th><th>Status</th><th></th></tr></thead><tbody id="tbContas"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLUXO DE CAIXA -->
+  <div class="page" id="page-fluxo">
+    <div class="content">
+      <div class="card"><div class="card-header"><div class="card-title"><i class="ti ti-chart-arrows-vertical"></i> Fluxo de Caixa Mensal</div></div><canvas id="chartFluxo" height="250"></canvas></div>
+    </div>
+  </div>
+
+  <!-- RELATÓRIOS -->
+  <div class="page" id="page-relatorios">
+    <div class="content">
+      <div class="kpi-grid" id="relatorioKpis"></div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-report-analytics"></i> Rebanho por Categoria</div></div>
+        <div class="table-container"><table><thead><tr><th>Categoria</th><th>Qtd. Animais</th><th>Peso Médio</th></tr></thead><tbody id="tbRelatorioCategorias"></tbody></table></div>
+      </div>
+      <div class="card" style="background:var(--bg);border:1px dashed var(--border)">
+        <div style="font-size:12px;color:var(--text-secondary)"><i class="ti ti-info-circle"></i> Produtividade por hectare fica disponível quando o módulo de Agricultura (Fase 3) estiver ativo.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIGURAÇÕES -->
+  <div class="page" id="page-config">
+    <div class="content">
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-building-warehouse"></i> Dados da Fazenda</div></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Nome da fazenda</label><input type="text" class="form-input" id="cfgNomeFazenda"></div>
+          <div class="form-group"><label class="form-label">CPF/CNPJ</label><input type="text" class="form-input" id="cfgCpfCnpj" oninput="this.value.replace(/\D/g,'').length>11?maskCNPJ(this):maskCPF(this)"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Telefone</label><input type="text" class="form-input" id="cfgTelefone" oninput="maskTel(this)"></div>
+          <div class="form-group"><label class="form-label">Unidade padrão de peso</label><select class="form-select" id="cfgUnidade"><option value="arroba">Arroba (@)</option><option value="kg">Quilograma (kg)</option></select></div>
+        </div>
+        <div class="form-group"><label class="form-label">Endereço</label><input type="text" class="form-input" id="cfgEndereco"></div>
+        <button class="btn btn-primary btn-sm" onclick="salvarConfig()"><i class="ti ti-device-floppy"></i> Salvar</button>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-key"></i> Código de Convite</div></div>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">Compartilhe este código para que sua equipe se cadastre vinculada a esta fazenda.</p>
+        <div style="display:flex;align-items:center;gap:10px"><code id="fazendaCodeDisplay" style="font-size:16px;font-weight:700;color:var(--amber);background:var(--bg);padding:8px 14px;border-radius:8px"></code><button class="btn-icon" onclick="copiarCodigoFazenda()"><i class="ti ti-copy"></i></button></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-shield-lock"></i> Log de Segurança</div></div>
+        <div class="table-container"><table><thead><tr><th>Data/Hora</th><th>Evento</th><th>E-mail</th><th>Detalhes</th><th>IP</th></tr></thead><tbody id="tbSecurityLog"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- USUÁRIOS -->
+  <div class="page" id="page-usuarios">
+    <div class="content">
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-users-group"></i> Usuários da Fazenda</div></div>
+        <div class="table-container"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Status</th><th></th></tr></thead><tbody id="tbUsuarios"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ANIMAL -->
+<div class="modal-overlay" id="modalAnimal">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="modalAnimalTitle">Novo Animal</span><button class="modal-close" onclick="closeModal('modalAnimal')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="animalId">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Brinco / Chip (identificação) *</label><input type="text" class="form-input" id="animalBrinco" placeholder="Ex: BR-00231"></div>
+        <div class="form-group"><label class="form-label">Nome (opcional)</label><input type="text" class="form-input" id="animalNome" placeholder="Ex: Mimosa"></div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group"><label class="form-label">Categoria</label><select class="form-select" id="animalCategoria"><option value="bezerro">Bezerro(a)</option><option value="novilha">Novilha</option><option value="garrote">Garrote</option><option value="vaca">Vaca</option><option value="touro">Touro</option><option value="boi">Boi</option></select></div>
+        <div class="form-group"><label class="form-label">Sexo</label><select class="form-select" id="animalSexo"><option value="F">Fêmea</option><option value="M">Macho</option></select></div>
+        <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="animalStatus"><option value="ativo">Ativo</option><option value="vendido">Vendido</option><option value="morto">Baixado</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Raça</label><input type="text" class="form-input" id="animalRaca" placeholder="Ex: Nelore"></div>
+        <div class="form-group"><label class="form-label">Data de nascimento</label><input type="date" class="form-input" id="animalNascimento"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Peso atual (kg)</label><input type="number" step="0.1" class="form-input" id="animalPeso"></div>
+        <div class="form-group"><label class="form-label">Lote/Piquete</label><input type="text" class="form-input" id="animalLote" placeholder="Ex: Piquete 3"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Mãe (brinco/nome)</label><input type="text" class="form-input" id="animalMae"></div>
+        <div class="form-group"><label class="form-label">Pai (brinco/nome)</label><input type="text" class="form-input" id="animalPai"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Observações</label><textarea class="form-textarea" id="animalObs"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalAnimal')">Cancelar</button><button class="btn btn-primary" onclick="withGuard('salvarAnimal',salvarAnimal,event.target)"><i class="ti ti-device-floppy"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL MANEJO -->
+<div class="modal-overlay" id="modalManejo">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Novo Registro de Manejo</span><button class="modal-close" onclick="closeModal('modalManejo')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Animal (brinco/chip) *</label><select class="form-select" id="manejoAnimalId"></select></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="manejoTipo" onchange="toggleManejoPesoField()"><option value="pesagem">Pesagem</option><option value="vacina">Vacina/Tratamento</option><option value="movimentacao">Movimentação de Lote</option><option value="outro">Outro</option></select></div>
+        <div class="form-group"><label class="form-label">Data</label><input type="date" class="form-input" id="manejoData"></div>
+      </div>
+      <div class="form-group" id="manejoPesoGroup"><label class="form-label">Peso registrado (kg)</label><input type="number" step="0.1" class="form-input" id="manejoPeso"></div>
+      <div class="form-group"><label class="form-label">Observação / Detalhe</label><textarea class="form-textarea" id="manejoObs" placeholder="Ex: Vacina aftosa, lote 3, novo piquete..."></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalManejo')">Cancelar</button><button class="btn btn-primary" onclick="withGuard('salvarManejo',salvarManejo,event.target)"><i class="ti ti-device-floppy"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL CONTA -->
+<div class="modal-overlay" id="modalConta">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="modalContaTitle">Nova Conta</span><button class="modal-close" onclick="closeModal('modalConta')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="contaId">
+      <div class="form-group"><label class="form-label">Descrição</label><input type="text" class="form-input" id="contaDescricao"></div>
+      <div class="form-row-3">
+        <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="contaTipo"><option value="despesa">Despesa</option><option value="receita">Receita</option></select></div>
+        <div class="form-group"><label class="form-label">Categoria</label><input type="text" class="form-input" id="contaCategoria" placeholder="Ex: Ração, Venda de gado..."></div>
+        <div class="form-group"><label class="form-label">Valor (R$)</label><input type="number" step="0.01" class="form-input" id="contaValor"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Vencimento</label><input type="date" class="form-input" id="contaVencimento"></div>
+        <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="contaStatus"><option value="pendente">Em aberto</option><option value="pago">Pago</option></select></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalConta')">Cancelar</button><button class="btn btn-primary" onclick="withGuard('salvarConta',salvarConta,event.target)"><i class="ti ti-device-floppy"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL NOVA FAZENDA -->
+<div class="modal-overlay" id="modalNovaFazenda">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Nova Fazenda</span><button class="modal-close" onclick="closeModal('modalNovaFazenda')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body"><div class="form-group"><label class="form-label">Nome da fazenda</label><input type="text" class="form-input" id="novaFazendaNome"></div></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalNovaFazenda')">Cancelar</button><button class="btn btn-primary" onclick="criarNovaFazenda()"><i class="ti ti-plus"></i> Criar</button></div>
+  </div>
+</div>
+
+<div id="toast" style="display:none;position:fixed;bottom:24px;right:24px;background:#1A2744;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:300;box-shadow:0 4px 12px rgba(0,0,0,.2);align-items:center;gap:8px;animation:fadeIn .3s">
+  <i class="ti ti-check" id="toastIcon"></i><span id="toastMsg"></span>
+</div>
+
+<script>
+// ==========================================================================
+// AgroGest — arquitetura espelha o EduGest/CondoGest (mesmo design system,
+// mesma lógica de auth/segurança). UMA DIFERENÇA INTENCIONAL: "animais" e
+// "manejos" NÃO usam o padrão "um documento com items:[]" do EduGest.
+// Como o rebanho pode ter milhares de cabeças e o manejo é lançado offline
+// por vários dispositivos ao mesmo tempo no curral, cada animal e cada
+// registro de manejo é o SEU PRÓPRIO documento Firestore (subcoleções
+// fazendas/{id}/animais e fazendas/{id}/manejos). Isso evita: (1) estourar
+// o limite de 1MB por documento com um rebanho grande, e (2) dois celulares
+// offline sobrescreverem um ao outro ao sincronizar (cada um sincroniza só
+// o seu próprio documento, não um array gigante compartilhado).
+// Coleções pequenas e de edição única (contas, config, talhões, safras,
+// insumos) seguem o padrão EduGest normalmente.
+// ==========================================================================
+
+// ========== FIREBASE ==========
+// Projeto: agrogest-15fe2
+const firebaseConfig = {
+  apiKey: "AIzaSyA1z0n8pOZ56YkehJuax6yeGfy9yg6f1Xc",
+  authDomain: "agrogest-15fe2.firebaseapp.com",
+  projectId: "agrogest-15fe2",
+  storageBucket: "agrogest-15fe2.firebasestorage.app",
+  messagingSenderId: "691519565066",
+  appId: "1:691519565066:web:bd24ad00fdecd37a1e9ef3"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+// Persistência offline: cache local em IndexedDB + fila de sincronização automática.
+db.enablePersistence({synchronizeTabs:true}).catch(e=>{
+  if(e.code==='failed-precondition')console.warn('Persistência offline ativa em outra aba.');
+  else if(e.code==='unimplemented')console.warn('Navegador sem suporte a persistência offline.');
+});
+
+// ========== STATE ==========
+let currentUser = null, currentUserData = null, fazendaId = null, isRegistering = false;
+let DATA = {animais:[],manejos:[],contas:[],talhoes:[],safras:[],insumos:[],activity:[],config:{}};
+const DATA_COLLECTIONS = ['contas','talhoes','safras','insumos'];
+let unsubAnimais=null, unsubManejos=null;
+let currentAnimalFilter='todos', currentManejoFilter='todos', currentContaFilter='todos';
+
+// ========== ONLINE/OFFLINE UI ==========
+function updateOnlineBanner(){document.getElementById('offlineBanner').classList.toggle('show',!navigator.onLine);}
+window.addEventListener('online',()=>{updateOnlineBanner();showToast('Conexão restabelecida — sincronizando...','ti-cloud-check');});
+window.addEventListener('offline',updateOnlineBanner);
+
+// ========== THEME ==========
+function initTheme(){const s=localStorage.getItem('agrogest_theme')||'light';document.documentElement.setAttribute('data-theme',s);updateThemeUI(s);}
+function toggleTheme(){const c=document.documentElement.getAttribute('data-theme');const n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('agrogest_theme',n);updateThemeUI(n);}
+function updateThemeUI(t){const i=document.getElementById('themeIcon');if(i)i.className='ti '+(t==='dark'?'ti-sun':'ti-moon');}
+
+// ========== LOADING / TOAST / MODAL ==========
+function showLoading(m='Carregando...'){document.getElementById('loadingMsg').textContent=m;document.getElementById('loadingOverlay').classList.add('open');}
+function hideLoading(){document.getElementById('loadingOverlay').classList.remove('open');}
+function showToast(m,ic='ti-check'){const t=document.getElementById('toast');document.getElementById('toastMsg').textContent=m;document.getElementById('toastIcon').className='ti '+ic;t.style.display='flex';setTimeout(()=>t.style.display='none',3000);}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');clearAllFieldErrors();}
+
+// ========== AUTH UI ==========
+function switchAuthTab(tab){document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));const tabs=document.querySelectorAll('.auth-tab');tabs[tab==='login'?0:1].classList.add('active');document.getElementById('authLogin').style.display=tab==='login'?'block':'none';document.getElementById('authRegister').style.display=tab==='register'?'block':'none';hideAuthError();}
+function showAuthError(m){const e=document.getElementById('authError');e.textContent=m;e.style.display='block';}
+function hideAuthError(){document.getElementById('authError').style.display='none';}
+
+// ========== RATE LIMITING ==========
+const RATE_LIMITS=[{attempts:3,wait:30},{attempts:5,wait:120},{attempts:8,wait:900}];
+let loginAttempts=0,lockUntil=0,lockInterval=null;
+function getRateLimitWait(){for(let i=RATE_LIMITS.length-1;i>=0;i--){if(loginAttempts>=RATE_LIMITS[i].attempts)return RATE_LIMITS[i].wait;}return 0;}
+function isLocked(){return Date.now()<lockUntil;}
+function applyLockout(){const waitSec=getRateLimitWait();if(!waitSec)return;lockUntil=Date.now()+waitSec*1000;updateLockUI();clearInterval(lockInterval);lockInterval=setInterval(()=>{if(!isLocked()){clearInterval(lockInterval);lockInterval=null;hideLockUI();return;}updateLockUI();},1000);}
+function updateLockUI(){const remaining=Math.ceil((lockUntil-Date.now())/1000);const mins=Math.floor(remaining/60),secs=remaining%60;const timeStr=mins>0?mins+'min '+String(secs).padStart(2,'0')+'s':secs+'s';const level=loginAttempts>=8?'Conta temporariamente bloqueada':loginAttempts>=5?'Muitas tentativas incorretas':'Aguarde para tentar novamente';showAuthError(level+' — '+timeStr);const btn=document.querySelector('#authLogin .btn-primary');if(btn){btn.disabled=true;btn.style.opacity='.5';}}
+function hideLockUI(){hideAuthError();const btn=document.querySelector('#authLogin .btn-primary');if(btn){btn.disabled=false;btn.style.opacity='1';}}
+function resetLoginAttempts(){loginAttempts=0;lockUntil=0;clearInterval(lockInterval);lockInterval=null;hideLockUI();}
+
+// ========== ERROR SANITIZATION ==========
+function sanitizeError(e){
+  if(!e)return'Erro inesperado. Tente novamente.';
+  const map={'auth/email-already-in-use':'E-mail já cadastrado','auth/weak-password':'Senha fraca — mínimo 8 caracteres','auth/user-not-found':'Credenciais inválidas','auth/wrong-password':'Credenciais inválidas','auth/invalid-credential':'Credenciais inválidas','auth/invalid-email':'Formato de e-mail inválido','auth/too-many-requests':'Muitas tentativas. Aguarde.','auth/network-request-failed':'Erro de conexão. Verifique sua internet.','permission-denied':'Sem permissão para esta ação.','unavailable':'Serviço indisponível. Tente em instantes.','not-found':'Registro não encontrado.'};
+  if(e.code&&map[e.code])return map[e.code];
+  const msg=e.message||String(e);
+  for(const[k,v]of Object.entries(map)){if(msg.includes(k))return v;}
+  if(msg.includes('network')||msg.includes('Failed to fetch'))return'Erro de conexão. Verifique sua internet.';
+  return'Ocorreu um erro. Tente novamente.';
+}
+
+// ========== SECURITY LOG ==========
+let cachedIP=null;
+async function getClientIP(){if(cachedIP)return cachedIP;try{const r=await fetch('https://api.ipify.org?format=json');const d=await r.json();cachedIP=d.ip;return d.ip;}catch(e){return'Indisponível';}}
+function getDeviceInfo(){const ua=navigator.userAgent;let browser='Navegador';if(ua.includes('Chrome')&&!ua.includes('Edg'))browser='Chrome';else if(ua.includes('Firefox'))browser='Firefox';else if(ua.includes('Safari')&&!ua.includes('Chrome'))browser='Safari';else if(ua.includes('Edg'))browser='Edge';let os='SO';if(ua.includes('Windows'))os='Windows';else if(ua.includes('Mac'))os='macOS';else if(ua.includes('Linux'))os='Linux';else if(ua.includes('Android'))os='Android';else if(ua.includes('iPhone')||ua.includes('iPad'))os='iOS';return browser+' / '+os;}
+async function logSecurity(type,email,details){
+  if(!fazendaId)return;
+  const ip=await getClientIP();
+  const entry={type,email:esc(email||'—'),details:esc(details||''),ip,device:getDeviceInfo(),ts:new Date().toISOString()};
+  try{const ref=db.collection('fazendas').doc(fazendaId).collection('data').doc('security_log');const snap=await ref.get();let items=snap.exists?(snap.data().items||[]):[];items.unshift(entry);if(items.length>200)items=items.slice(0,200);await ref.set({items});}catch(e){}
+}
+async function refreshSecurityLog(){if(!fazendaId)return;try{const snap=await db.collection('fazendas').doc(fazendaId).collection('data').doc('security_log').get();DATA.security_log=snap.exists?(snap.data().items||[]):[];renderSecurityLog();}catch(e){}}
+function renderSecurityLog(){
+  const tb=document.getElementById('tbSecurityLog');if(!tb)return;
+  const list=DATA.security_log||[];
+  if(!list.length){tb.innerHTML='<tr><td colspan="5"><div class="empty-state" style="padding:16px"><i class="ti ti-shield-lock"></i><p>Nenhum evento registrado</p></div></td></tr>';return;}
+  const typeLabels={login_ok:'Login',login_fail:'Falha',logout:'Logout',register:'Cadastro'};
+  const typeColors={login_ok:'var(--success)',login_fail:'var(--danger)',logout:'var(--text-muted)',register:'var(--info)'};
+  tb.innerHTML=list.slice(0,100).map(l=>{const d=new Date(l.ts);const dt=d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});return'<tr><td style="white-space:nowrap;font-size:12px">'+dt+'</td><td><span style="color:'+(typeColors[l.type]||'var(--text)')+'">'+(typeLabels[l.type]||l.type)+'</span></td><td style="font-size:12px">'+esc(l.email)+'</td><td style="font-size:12px;color:var(--text-secondary)">'+esc(l.details||'')+'</td><td style="font-size:11px;font-family:monospace;color:var(--text-muted)">'+esc(l.ip||'—')+'</td></tr>';}).join('');
+}
+
+// ========== AUTH ==========
+async function doLogin(){
+  if(isLocked()){updateLockUI();return;}
+  const e=document.getElementById('loginEmail').value.trim(),p=document.getElementById('loginPassword').value;
+  if(!e||!p){showAuthError('Preencha e-mail e senha');return;}
+  try{
+    showLoading('Autenticando...');
+    await auth.signInWithEmailAndPassword(e,p);
+    resetLoginAttempts();logSecurity('login_ok',e,'Login bem-sucedido');
+  }catch(er){
+    hideLoading();
+    if(['auth/wrong-password','auth/user-not-found','auth/invalid-credential'].includes(er.code)){
+      loginAttempts++;logSecurity('login_fail',e,'Tentativa '+loginAttempts+' — credenciais incorretas');
+      const wait=getRateLimitWait();if(wait){applyLockout();return;}
+      const next=loginAttempts<3?3:loginAttempts<5?5:8;
+      showAuthError('Credenciais incorretas — '+(next-loginAttempts)+' tentativa(s) antes do bloqueio');
+    }else{showAuthError(sanitizeError(er));}
+  }
+}
+async function doRegister(){
+  const nome=document.getElementById('regNome').value.trim(),email=document.getElementById('regEmail').value.trim(),pass=document.getElementById('regPassword').value;
+  const codEx=document.getElementById('regFazendaCode').value.trim(),nomeNovo=document.getElementById('regFazendaNome').value.trim();
+  if(!nome||!email||!pass){showAuthError('Preencha todos os campos');return;}
+  if(pass.length<8||!/[A-Z]/.test(pass)||!/[0-9]/.test(pass)){showAuthError('Senha: mínimo 8 caracteres, 1 maiúscula e 1 número');return;}
+  if(!codEx&&!nomeNovo){showAuthError('Informe código existente ou nome da nova fazenda');return;}
+  try{
+    showLoading('Criando conta...');isRegistering=true;
+    const cred=await auth.createUserWithEmailAndPassword(email,pass);const uid=cred.user.uid;let fid,role,status;
+    if(codEx){
+      const s=await db.collection('fazendas').doc(codEx).get();
+      if(!s.exists){hideLoading();isRegistering=false;showAuthError('Código não encontrado');await cred.user.delete();return;}
+      fid=codEx;role='peao';status='pendente';
+      const fazendaNome=s.data().nome||'Fazenda';
+      await db.collection('users').doc(uid).set({nome,email,role,status,fazendaId:fid,fazendas:[{id:fid,nome:fazendaNome,role}],criadoEm:new Date().toISOString()});
+    }else{
+      const ref=db.collection('fazendas').doc();fid=ref.id;role='admin';status='ativo';
+      await ref.set({nome:nomeNovo,criadoEm:new Date().toISOString(),criadoPor:uid});
+      await db.collection('users').doc(uid).set({nome,email,role,status,fazendaId:fid,fazendas:[{id:fid,nome:nomeNovo,role:'admin'}],criadoEm:new Date().toISOString()});
+      const b=db.batch(),base=db.collection('fazendas').doc(fid).collection('data');
+      DATA_COLLECTIONS.forEach(c=>b.set(base.doc(c),{items:[]}));
+      b.set(base.doc('activity'),{items:[]});b.set(base.doc('security_log'),{items:[]});
+      b.set(base.doc('config'),{nomeFazenda:nomeNovo,unidade:'arroba'});
+      await b.commit();
+    }
+    currentUser=cred.user;currentUserData={nome,email,role,status,fazendaId:fid};fazendaId=fid;isRegistering=false;
+    logSecurity('register',email,'Novo cadastro — '+role);
+    hideLoading();
+    if(status==='pendente'){showPendingPanel();}
+    // onAuthStateChanged cuida do resto quando status='ativo'
+  }catch(e){isRegistering=false;hideLoading();showAuthError(sanitizeError(e));}
+}
+async function resetPassword(){
+  if(isLocked()){updateLockUI();return;}
+  const e=document.getElementById('loginEmail').value.trim();
+  if(!e){showAuthError('Digite seu e-mail para recuperar a senha');return;}
+  try{await auth.sendPasswordResetEmail(e);showToast('E-mail de recuperação enviado!','ti-mail');}
+  catch(er){showAuthError(sanitizeError(er));}
+}
+function doLogout(){logSecurity('logout',currentUser?.email||'','Logout manual');if(unsubAnimais)unsubAnimais();if(unsubManejos)unsubManejos();auth.signOut();}
+function showPendingPanel(){document.getElementById('authLogin').style.display='none';document.getElementById('authRegister').style.display='none';document.getElementById('authPending').style.display='block';document.querySelector('.auth-tabs').style.display='none';hideAuthError();}
+async function checkPendingStatus(){
+  if(!currentUser){showAuthError('Sessão expirada.');backToLogin();return;}
+  showLoading('Verificando...');
+  try{
+    const d=await db.collection('users').doc(currentUser.uid).get();
+    const data=d.data();
+    if(data.status==='ativo'){currentUserData=data;fazendaId=data.fazendaId;await loadAllData();document.getElementById('authPending').style.display='none';enterApp();showToast('Acesso aprovado! Bem-vindo!','ti-circle-check');}
+    else{hideLoading();showAuthError('Ainda aguardando aprovação do administrador.');}
+  }catch(e){hideLoading();showAuthError(sanitizeError(e));}
+}
+function backToLogin(){auth.signOut();document.getElementById('authPending').style.display='none';document.getElementById('authLogin').style.display='block';document.querySelector('.auth-tabs').style.display='flex';switchAuthTab('login');}
+
+auth.onAuthStateChanged(async user=>{
+  if(isRegistering)return;
+  if(user){
+    showLoading('Carregando...');
+    try{
+      const doc=await db.collection('users').doc(user.uid).get();
+      if(!doc.exists){hideLoading();auth.signOut();return;}
+      const userData=doc.data();
+      currentUser=user;
+      if(userData.status==='pendente'){currentUserData=userData;fazendaId=userData.fazendaId;hideLoading();showPendingPanel();return;}
+      currentUserData=userData;fazendaId=userData.fazendaId;
+      await loadAllData();enterApp();
+    }catch(e){hideLoading();showAuthError(sanitizeError(e));}
+  }else{
+    currentUser=null;currentUserData=null;fazendaId=null;exitApp();
+  }
+});
+
+function enterApp(){
+  hideLoading();
+  document.getElementById('page-auth').style.display='none';
+  document.getElementById('sidebar').style.display='flex';
+  document.getElementById('topbar').style.display='flex';
+  const initials=(currentUserData.nome||'A').charAt(0).toUpperCase();
+  document.getElementById('sidebarAvatar').textContent=initials;
+  document.getElementById('topbarAvatar').textContent=initials;
+  document.getElementById('sidebarUserName').textContent=currentUserData.nome||currentUser.email;
+  document.getElementById('sidebarUserRole').textContent={admin:'Administrador',gerente:'Gerente',financeiro:'Financeiro',peao:'Peão de Campo'}[currentUserData.role]||currentUserData.role;
+  applyRolePermissions();
+  populateFazendaSelector();
+  setupAnimaisListener();setupManejosListener();
+  updateOnlineBanner();
+  navigate('dashboard');
+  updateLastAccess();
+}
+function exitApp(){
+  document.getElementById('page-auth').style.display='flex';
+  document.getElementById('sidebar').style.display='none';
+  document.getElementById('topbar').style.display='none';
+  document.querySelectorAll('.page:not(#page-auth)').forEach(p=>p.classList.remove('active'));
+  document.getElementById('authLogin').style.display='block';document.getElementById('authRegister').style.display='none';document.getElementById('authPending').style.display='none';
+  document.querySelector('.auth-tabs').style.display='flex';switchAuthTab('login');
+}
+async function updateLastAccess(){if(!currentUser)return;try{const ip=await getClientIP();await db.collection('users').doc(currentUser.uid).update({lastAccess:new Date().toISOString(),lastIP:ip,lastDevice:getDeviceInfo()});}catch(e){}}
+function applyRolePermissions(){
+  const role=currentUserData.role;
+  const restrictedForPeao=['contas','fluxo','relatorios','config','usuarios'];
+  document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
+    if(role==='peao'&&restrictedForPeao.includes(el.dataset.page))el.style.display='none';else el.style.display='';
+  });
+}
+function requireAdmin(actionName){if(currentUserData?.role!=='admin'){showToast('Apenas administradores podem '+actionName,'ti-lock');return false;}return true;}
+
+// ========== DATA LOAD/SAVE (coleções pequenas — padrão EduGest) ==========
+async function loadAllData(){
+  const r=db.collection('fazendas').doc(fazendaId).collection('data');
+  for(const c of DATA_COLLECTIONS){const s=await r.doc(c).get();DATA[c]=s.exists?(s.data().items||[]):[];}
+  const as=await r.doc('activity').get();DATA.activity=as.exists?(as.data().items||[]):[];
+  const cs=await r.doc('config').get();DATA.config=cs.exists?cs.data():{};
+  const sl=await r.doc('security_log').get();DATA.security_log=sl.exists?(sl.data().items||[]):[];
+  const faz=await db.collection('fazendas').doc(fazendaId).get();
+  if(faz.exists){const nome=faz.data().nome||'AgroGest';document.getElementById('sidebarFazendaNome').textContent=nome;}
+}
+async function saveCollection(n){if(!fazendaId)return;const r=db.collection('fazendas').doc(fazendaId).collection('data').doc(n);if(DATA_COLLECTIONS.includes(n))await r.set({items:DATA[n]});else if(n==='activity')await r.set({items:DATA.activity});else if(n==='config')await r.set(DATA.config);}
+function genId(){return Date.now().toString(36)+Math.random().toString(36).substr(2,5);}
+function logActivity(m){const author=currentUser?currentUserData?.nome||currentUser.email:'sistema';DATA.activity.unshift({msg:esc(m),author:esc(author),ts:new Date().toISOString()});if(DATA.activity.length>50)DATA.activity=DATA.activity.slice(0,50);saveCollection('activity');}
+
+// ========== ANIMAIS / MANEJOS (subcoleções próprias — offline-safe) ==========
+function setupAnimaisListener(){
+  if(unsubAnimais)unsubAnimais();
+  unsubAnimais=db.collection('fazendas').doc(fazendaId).collection('animais').onSnapshot(snap=>{
+    DATA.animais=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(document.getElementById('page-animais').classList.contains('active'))renderAnimais(currentAnimalFilter,document.getElementById('searchAnimal')?.value||'');
+    if(document.getElementById('page-dashboard').classList.contains('active'))refreshDashboard();
+    if(document.getElementById('page-relatorios').classList.contains('active'))renderRelatorios();
+    populateAnimalSelect();
+  },err=>console.warn('animais onSnapshot',err));
+}
+function setupManejosListener(){
+  if(unsubManejos)unsubManejos();
+  unsubManejos=db.collection('fazendas').doc(fazendaId).collection('manejos').orderBy('data','desc').limit(300).onSnapshot(snap=>{
+    DATA.manejos=snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(document.getElementById('page-manejo').classList.contains('active'))renderManejos();
+    if(document.getElementById('page-dashboard').classList.contains('active'))refreshDashboard();
+  },err=>console.warn('manejos onSnapshot',err));
+}
+function populateAnimalSelect(){
+  const sel=document.getElementById('manejoAnimalId');if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML=DATA.animais.filter(a=>a.status==='ativo').map(a=>`<option value="${a.id}">${esc(a.brinco)} — ${esc(a.nome||a.categoria)}</option>`).join('')||'<option value="">Nenhum animal ativo</option>';
+  if(cur)sel.value=cur;
+}
+
+// ========== XSS / VALIDAÇÃO ==========
+function esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function maskCPF(el){let v=el.value.replace(/\D/g,'').slice(0,11);if(v.length>9)v=v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/,'$1.$2.$3-$4');else if(v.length>6)v=v.replace(/(\d{3})(\d{3})(\d{1,3})/,'$1.$2.$3');else if(v.length>3)v=v.replace(/(\d{3})(\d{1,3})/,'$1.$2');el.value=v;}
+function maskCNPJ(el){let v=el.value.replace(/\D/g,'').slice(0,14);if(v.length>12)v=v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{1,2})/,'$1.$2.$3/$4-$5');else if(v.length>8)v=v.replace(/(\d{2})(\d{3})(\d{3})(\d{1,4})/,'$1.$2.$3/$4');else if(v.length>5)v=v.replace(/(\d{2})(\d{3})(\d{1,3})/,'$1.$2.$3');else if(v.length>2)v=v.replace(/(\d{2})(\d{1,3})/,'$1.$2');el.value=v;}
+function maskTel(el){let v=el.value.replace(/\D/g,'').slice(0,11);if(v.length>10)v=v.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3');else if(v.length>6)v=v.replace(/(\d{2})(\d{4,5})(\d{0,4})/,'($1) $2-$3');else if(v.length>2)v=v.replace(/(\d{2})(\d{0,5})/,'($1) $2');el.value=v;}
+function showFieldError(el,msg){clearFieldError(el);el.style.borderColor='var(--danger)';const err=document.createElement('span');err.className='field-error';err.textContent=msg;err.style.cssText='color:var(--danger);font-size:11px;display:block;margin-top:3px';el.parentNode.appendChild(err);}
+function clearFieldError(el){el.style.borderColor='';const e=el.parentNode.querySelector('.field-error');if(e)e.remove();}
+function clearAllFieldErrors(){document.querySelectorAll('.field-error').forEach(e=>e.remove());document.querySelectorAll('.form-input,.form-select').forEach(e=>e.style.borderColor='');}
+function togglePw(btn){const input=btn.parentElement.querySelector('input');const icon=btn.querySelector('i');if(input.type==='password'){input.type='text';icon.className='ti ti-eye-off';}else{input.type='password';icon.className='ti ti-eye';}}
+
+// ========== DOUBLE-SUBMIT PROTECTION ==========
+const _guards=new Set();
+async function withGuard(key,fn,btnEl){
+  if(_guards.has(key))return;_guards.add(key);
+  const btn=btnEl?.closest?.('button')||btnEl;let origHTML='';
+  if(btn&&btn.tagName==='BUTTON'){origHTML=btn.innerHTML;btn.disabled=true;btn.style.opacity='.5';btn.innerHTML='<i class="ti ti-loader" style="animation:spin .6s linear infinite"></i> Salvando...';}
+  try{await fn();}catch(e){console.error(e);showToast('Erro ao salvar — tente novamente','ti-alert-triangle');}
+  finally{_guards.delete(key);if(btn&&origHTML){btn.disabled=false;btn.style.opacity='';btn.innerHTML=origHTML;}}
+}
+
+// ========== NAVIGATION ==========
+const PAGE_TITLES={dashboard:'Dashboard',animais:'Rebanho',manejo:'Manejo de Curral',reproducao:'Reprodução',sanidade:'Sanidade',nutricao:'Nutrição',pastagens:'Pastagens',ordenha:'Ordenha e Leite',gps:'Rastreamento GPS',talhoes:'Talhões',safras:'Safras',insumos:'Insumos',contas:'Contas',fluxo:'Fluxo de Caixa',comprasvendas:'Compra/Venda de Animais',relatorios:'Indicadores',config:'Configurações',usuarios:'Usuários'};
+const PLACEHOLDER_PAGES={
+  reproducao:{icon:'ti-heartbeat',fase:'Fase 2',desc:'Estação de monta, IATF, diagnóstico de gestação e previsão de partos.'},
+  sanidade:{icon:'ti-shield-plus',fase:'Fase 2',desc:'Calendário de vacinação, protocolos e período de carência.'},
+  nutricao:{icon:'ti-apple',fase:'Fase 2',desc:'Controle de dieta, consumo de matéria seca e conversão alimentar.'},
+  pastagens:{icon:'ti-map-2',fase:'Fase 2',desc:'Cadastro de piquetes, lotação e pastejo rotacionado.'},
+  ordenha:{icon:'ti-droplet',fase:'Fase 2',desc:'Volume por ordenha, curva de lactação e qualidade do leite.'},
+  gps:{icon:'ti-map-pin',fase:'Fase 4',desc:'Mapa da fazenda com localização em tempo real assim que um fornecedor de brinco GPS (ex: iBoi, Ceres Tag) for integrado. A estrutura de dados já está preparada — veja a coleção "localizacoes".'},
+  talhoes:{icon:'ti-map',fase:'Fase 3',desc:'Cadastro de talhões/áreas de plantio com geolocalização e histórico de uso.'},
+  safras:{icon:'ti-leaf',fase:'Fase 3',desc:'Planejamento de safra: cultura, variedade, ciclo e acompanhamento plantio-colheita.'},
+  insumos:{icon:'ti-package',fase:'Fase 3',desc:'Controle de sementes, fertilizantes e defensivos, com custo por hectare.'},
+  comprasvendas:{icon:'ti-replace',fase:'Fase 2',desc:'Compra e venda de animais com GTA e nota fiscal.'}
+};
+function ensurePlaceholderPages(){
+  Object.entries(PLACEHOLDER_PAGES).forEach(([key,p])=>{
+    if(document.getElementById('page-'+key))return;
+    const div=document.createElement('div');div.className='page';div.id='page-'+key;
+    div.innerHTML=`<div class="content"><div class="card"><div class="empty-state"><i class="ti ${p.icon}"></i><p><strong>${esc(PAGE_TITLES[key])}</strong> chega na <strong>${p.fase}</strong> do roadmap.</p><p style="max-width:420px;margin:0 auto">${esc(p.desc)}</p></div></div></div>`;
+    document.getElementById('mainContent').appendChild(div);
+  });
+}
+function navigate(page){
+  document.querySelectorAll('.page:not(#page-auth)').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const el=document.getElementById('page-'+page);if(el)el.classList.add('active');
+  const nav=document.querySelector(`.nav-item[data-page="${page}"]`);
+  if(nav){
+    nav.classList.add('active');
+    document.querySelectorAll('.nav-section-title[onclick]').forEach(t=>{t.classList.add('collapsed');t.nextElementSibling.classList.add('collapsed');});
+    const si=nav.closest('.nav-section-items');
+    if(si){si.classList.remove('collapsed');si.previousElementSibling?.classList.remove('collapsed');}
+  }
+  document.getElementById('topbarTitle').textContent=PAGE_TITLES[page]||page;
+  if(page==='dashboard')refreshDashboard();
+  if(page==='animais')renderAnimais();
+  if(page==='manejo'){populateAnimalSelect();document.getElementById('manejoData').value=new Date().toISOString().split('T')[0];renderManejos();}
+  if(page==='contas')renderContas();
+  if(page==='fluxo')renderFluxo();
+  if(page==='relatorios')renderRelatorios();
+  if(page==='config'){loadConfig();refreshSecurityLog();}
+  if(page==='usuarios')renderUsuarios();
+  if(window.innerWidth<=768)toggleSidebar();
+}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebarOverlay').classList.toggle('open');}
+function toggleSection(el){el.nextElementSibling.classList.toggle('collapsed');el.classList.toggle('collapsed');}
+
+// ========== NOTIFICATIONS ==========
+function getNotifications(){
+  const notifs=[],hoje=new Date().toISOString().split('T')[0];
+  const vencidas=(DATA.contas||[]).filter(c=>c.status!=='pago'&&c.vencimento&&c.vencimento<hoje);
+  if(vencidas.length)notifs.push({icon:'ti-alert-triangle',color:'var(--danger)',msg:`${vencidas.length} conta(s) vencida(s)`});
+  (DATA.activity||[]).slice(0,3).forEach(a=>notifs.push({icon:'ti-point-filled',color:'var(--amber)',msg:a.msg}));
+  return notifs;
+}
+function renderNotifications(){
+  const notifs=getNotifications(),list=document.getElementById('notifList'),badge=document.getElementById('notifBadge');
+  const alertCount=notifs.filter(n=>n.color.includes('danger')).length;
+  badge.style.display=alertCount>0?'block':'none';
+  if(!notifs.length){list.innerHTML='<div class="notif-empty"><i class="ti ti-bell-off" style="font-size:24px;display:block;margin-bottom:6px"></i>Nenhuma notificação</div>';return;}
+  list.innerHTML=notifs.map(n=>`<div class="notif-item"><i class="ti ${n.icon}" style="color:${n.color};font-size:16px;margin-top:1px"></i><span style="flex:1">${esc(n.msg)}</span></div>`).join('');
+  document.getElementById('badgeVencidas').style.display=vencidasCount()>0?'inline-block':'none';document.getElementById('badgeVencidas').textContent=vencidasCount();
+}
+function vencidasCount(){const hoje=new Date().toISOString().split('T')[0];return(DATA.contas||[]).filter(c=>c.status!=='pago'&&c.vencimento&&c.vencimento<hoje).length;}
+function toggleNotifications(){const dd=document.getElementById('notifDropdown');if(!dd.classList.contains('open'))renderNotifications();dd.classList.toggle('open');}
+function clearNotifications(){document.getElementById('notifDropdown').classList.remove('open');}
+document.addEventListener('click',e=>{const dd=document.getElementById('notifDropdown');if(dd&&dd.classList.contains('open')&&!e.target.closest('.topbar-right'))dd.classList.remove('open');});
+
+// ========== FAZENDA (multi-tenant) ==========
+function populateFazendaSelector(){
+  const sel=document.getElementById('selectorFazenda');
+  const fazendas=currentUserData?.fazendas||[{id:fazendaId,nome:DATA.config.nomeFazenda||'Fazenda'}];
+  sel.innerHTML=fazendas.map(f=>`<option value="${f.id}" ${f.id===fazendaId?'selected':''}>${esc(f.nome)}</option>`).join('');
+}
+async function switchFazenda(newId){
+  if(newId===fazendaId)return;
+  showLoading('Trocando de fazenda...');
+  fazendaId=newId;
+  await db.collection('users').doc(currentUser.uid).update({fazendaId:newId});
+  currentUserData.fazendaId=newId;
+  await loadAllData();setupAnimaisListener();setupManejosListener();navigate('dashboard');hideLoading();
+}
+async function criarNovaFazenda(){
+  const nome=document.getElementById('novaFazendaNome').value.trim();
+  if(!nome){showToast('Informe o nome da fazenda','ti-alert-triangle');return;}
+  showLoading('Criando fazenda...');
+  const ref=db.collection('fazendas').doc();const newId=ref.id;
+  await ref.set({nome,criadoEm:new Date().toISOString(),criadoPor:currentUser.uid});
+  const b=db.batch(),base=db.collection('fazendas').doc(newId).collection('data');
+  DATA_COLLECTIONS.forEach(c=>b.set(base.doc(c),{items:[]}));
+  b.set(base.doc('activity'),{items:[]});b.set(base.doc('security_log'),{items:[]});
+  b.set(base.doc('config'),{nomeFazenda:nome,unidade:'arroba'});
+  await b.commit();
+  const fazendas=[...(currentUserData.fazendas||[]),{id:newId,nome,role:'admin'}];
+  await db.collection('users').doc(currentUser.uid).update({fazendas,fazendaId:newId});
+  currentUserData.fazendas=fazendas;currentUserData.fazendaId=newId;fazendaId=newId;
+  closeModal('modalNovaFazenda');document.getElementById('novaFazendaNome').value='';
+  await loadAllData();setupAnimaisListener();setupManejosListener();populateFazendaSelector();navigate('dashboard');hideLoading();
+  showToast('Fazenda criada!');
+}
+function copiarCodigoFazenda(){navigator.clipboard?.writeText(fazendaId);showToast('Código copiado!','ti-copy');}
+
+// ========== REBANHO / ANIMAIS ==========
+function renderAnimais(filter=currentAnimalFilter,search=''){
+  let list=[...DATA.animais];
+  if(filter!=='todos')list=list.filter(a=>a.status===filter);
+  if(search){const s=search.toLowerCase();list=list.filter(a=>(a.brinco||'').toLowerCase().includes(s)||(a.nome||'').toLowerCase().includes(s));}
+  const tb=document.getElementById('tbAnimais');if(!tb)return;
+  if(!list.length){tb.innerHTML='<tr><td colspan="7"><div class="empty-state"><i class="ti ti-paw"></i><p>Nenhum animal encontrado</p><button class="btn btn-primary btn-sm" onclick="clearAnimalForm();openModal(\'modalAnimal\')"><i class="ti ti-plus"></i> Cadastrar</button></div></td></tr>';return;}
+  const catLabels={bezerro:'Bezerro(a)',novilha:'Novilha',garrote:'Garrote',vaca:'Vaca',touro:'Touro',boi:'Boi'};
+  tb.innerHTML=list.map(a=>`<tr><td><span class="brinco-code">${esc(a.brinco)}</span>${a.nome?' <strong>'+esc(a.nome)+'</strong>':''}</td><td>${catLabels[a.categoria]||esc(a.categoria)}</td><td>${esc(a.raca||'—')}</td><td>${a.sexo==='F'?'Fêmea':'Macho'}</td><td>${a.peso?a.peso+' kg':'—'}</td><td><span class="status-badge status-${a.status}">${a.status}</span></td><td><button class="btn-icon" onclick="editAnimal('${a.id}')"><i class="ti ti-edit"></i></button> <button class="btn-icon" onclick="excluirAnimal('${a.id}')"><i class="ti ti-trash"></i></button></td></tr>`).join('');
+}
+function filterAnimais(){renderAnimais(currentAnimalFilter,document.getElementById('searchAnimal').value);}
+function filterAnimalStatus(el,f){currentAnimalFilter=f;document.querySelectorAll('#page-animais .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');filterAnimais();}
+async function salvarAnimal(){
+  clearAllFieldErrors();
+  const id=document.getElementById('animalId').value;
+  const brincoEl=document.getElementById('animalBrinco');
+  const brinco=brincoEl.value.trim();
+  if(!brinco){showFieldError(brincoEl,'Informe o brinco/chip');brincoEl.focus();return;}
+  const dup=DATA.animais.find(a=>a.brinco.toLowerCase()===brinco.toLowerCase()&&a.id!==id);
+  if(dup){showFieldError(brincoEl,'Já existe um animal com este brinco/chip');brincoEl.focus();return;}
+  const animal={
+    brinco,nome:document.getElementById('animalNome').value.trim(),
+    categoria:document.getElementById('animalCategoria').value,sexo:document.getElementById('animalSexo').value,status:document.getElementById('animalStatus').value,
+    raca:document.getElementById('animalRaca').value.trim(),nascimento:document.getElementById('animalNascimento').value,
+    peso:parseFloat(document.getElementById('animalPeso').value)||0,lote:document.getElementById('animalLote').value.trim(),
+    mae:document.getElementById('animalMae').value.trim(),pai:document.getElementById('animalPai').value.trim(),
+    obs:document.getElementById('animalObs').value.trim(),
+    atualizadoEm:new Date().toISOString()
+  };
+  const ref=db.collection('fazendas').doc(fazendaId).collection('animais');
+  if(id){await ref.doc(id).update(animal);}
+  else{animal.criadoEm=new Date().toISOString();animal.historicoPeso=animal.peso?[{peso:animal.peso,data:new Date().toISOString().split('T')[0]}]:[];await ref.add(animal);}
+  logActivity(`Animal ${esc(brinco)} ${id?'atualizado':'cadastrado'}`);
+  closeModal('modalAnimal');clearAnimalForm();showToast(`Animal ${id?'atualizado':'cadastrado'}!`);
+}
+function editAnimal(id){
+  const a=DATA.animais.find(x=>x.id===id);if(!a)return;
+  document.getElementById('animalId').value=a.id;document.getElementById('animalBrinco').value=a.brinco||'';document.getElementById('animalNome').value=a.nome||'';
+  document.getElementById('animalCategoria').value=a.categoria||'bezerro';document.getElementById('animalSexo').value=a.sexo||'F';document.getElementById('animalStatus').value=a.status||'ativo';
+  document.getElementById('animalRaca').value=a.raca||'';document.getElementById('animalNascimento').value=a.nascimento||'';document.getElementById('animalPeso').value=a.peso||'';
+  document.getElementById('animalLote').value=a.lote||'';document.getElementById('animalMae').value=a.mae||'';document.getElementById('animalPai').value=a.pai||'';document.getElementById('animalObs').value=a.obs||'';
+  document.getElementById('modalAnimalTitle').textContent='Editar Animal';openModal('modalAnimal');
+}
+async function excluirAnimal(id){
+  const a=DATA.animais.find(x=>x.id===id);if(!a)return;
+  const manejosVinculados=DATA.manejos.filter(m=>m.animalId===id).length;
+  let msg=`Excluir o animal "${esc(a.brinco)}"?`;
+  if(manejosVinculados)msg+=`\n\nATENÇÃO: existem ${manejosVinculados} registro(s) de manejo vinculados a este animal — eles NÃO serão excluídos automaticamente, mas ficarão órfãos.`;
+  if(!confirm(msg))return;
+  await db.collection('fazendas').doc(fazendaId).collection('animais').doc(id).delete();
+  logActivity(`Animal ${esc(a.brinco)} excluído`);showToast('Animal excluído','ti-trash');
+}
+function clearAnimalForm(){['animalId','animalBrinco','animalNome','animalRaca','animalNascimento','animalPeso','animalLote','animalMae','animalPai','animalObs'].forEach(id=>document.getElementById(id).value='');document.getElementById('animalCategoria').value='bezerro';document.getElementById('animalSexo').value='F';document.getElementById('animalStatus').value='ativo';document.getElementById('modalAnimalTitle').textContent='Novo Animal';}
+
+// ========== MANEJO DE CURRAL ==========
+function toggleManejoPesoField(){document.getElementById('manejoPesoGroup').style.display=document.getElementById('manejoTipo').value==='pesagem'?'block':'none';}
+function renderManejos(filter=currentManejoFilter){
+  let list=[...DATA.manejos];
+  if(filter!=='todos')list=list.filter(m=>m.tipo===filter);
+  const tb=document.getElementById('tbManejo');if(!tb)return;
+  if(!list.length){tb.innerHTML='<tr><td colspan="5"><div class="empty-state"><i class="ti ti-clipboard-check"></i><p>Nenhum registro de manejo</p></div></td></tr>';return;}
+  const tipoLabels={pesagem:'Pesagem',vacina:'Vacina/Tratamento',movimentacao:'Movimentação',outro:'Outro'};
+  tb.innerHTML=list.map(m=>{const a=DATA.animais.find(x=>x.id===m.animalId);return`<tr><td style="white-space:nowrap;font-size:12px">${m.data||'—'}</td><td><span class="brinco-code">${esc(a?a.brinco:'—')}</span></td><td>${tipoLabels[m.tipo]||m.tipo}</td><td>${m.tipo==='pesagem'?(m.peso+' kg'):esc(m.obs||'—')}</td><td>${esc(m.registradoPor||'—')}</td><td><button class="btn-icon" onclick="excluirManejo('${m.id}')"><i class="ti ti-trash"></i></button></td></tr>`}).join('');
+}
+function filterManejoTipo(el,f){currentManejoFilter=f;document.querySelectorAll('#page-manejo .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderManejos(f);}
+async function salvarManejo(){
+  const animalId=document.getElementById('manejoAnimalId').value;
+  if(!animalId){showToast('Selecione um animal','ti-alert-triangle');return;}
+  const tipo=document.getElementById('manejoTipo').value;
+  const registro={animalId,tipo,data:document.getElementById('manejoData').value||new Date().toISOString().split('T')[0],obs:document.getElementById('manejoObs').value.trim(),registradoPor:currentUserData?.nome||currentUser.email,criadoEm:new Date().toISOString()};
+  if(tipo==='pesagem'){const peso=parseFloat(document.getElementById('manejoPeso').value);if(!peso){showToast('Informe o peso','ti-alert-triangle');return;}registro.peso=peso;}
+  // grava o registro (funciona offline — Firestore enfileira automaticamente)
+  await db.collection('fazendas').doc(fazendaId).collection('manejos').add(registro);
+  // se for pesagem, atualiza o peso atual e histórico do animal
+  if(tipo==='pesagem'){
+    const animalRef=db.collection('fazendas').doc(fazendaId).collection('animais').doc(animalId);
+    const a=DATA.animais.find(x=>x.id===animalId);
+    const historico=[...(a?.historicoPeso||[]),{peso:registro.peso,data:registro.data}].slice(-50);
+    await animalRef.update({peso:registro.peso,historicoPeso:historico});
+  }
+  logActivity(`Manejo (${tipo}) registrado`);
+  closeModal('modalManejo');clearManejoForm();showToast(navigator.onLine?'Registro salvo!':'Registro salvo offline — será sincronizado','ti-cloud-check');
+}
+async function excluirManejo(id){if(!confirm('Excluir este registro de manejo?'))return;await db.collection('fazendas').doc(fazendaId).collection('manejos').doc(id).delete();showToast('Registro excluído','ti-trash');}
+function clearManejoForm(){document.getElementById('manejoObs').value='';document.getElementById('manejoPeso').value='';document.getElementById('manejoTipo').value='pesagem';toggleManejoPesoField();document.getElementById('manejoData').value=new Date().toISOString().split('T')[0];}
+
+// ========== FINANCEIRO / CONTAS ==========
+function renderContas(filter=currentContaFilter){
+  let list=[...DATA.contas];const hoje=new Date().toISOString().split('T')[0];
+  if(filter==='vencido')list=list.filter(c=>c.status!=='pago'&&c.vencimento<hoje);
+  else if(filter!=='todos')list=list.filter(c=>c.status===filter);
+  const tb=document.getElementById('tbContas');if(!tb)return;
+  if(!list.length){tb.innerHTML='<tr><td colspan="7"><div class="empty-state"><i class="ti ti-file-invoice"></i><p>Nenhuma conta encontrada</p></div></td></tr>';return;}
+  tb.innerHTML=list.map(c=>{const vencida=c.status!=='pago'&&c.vencimento<hoje;const statusShow=vencida?'vencido':c.status;return`<tr><td>${esc(c.descricao)}</td><td>${c.tipo==='receita'?'Receita':'Despesa'}</td><td>${esc(c.categoria||'—')}</td><td>R$ ${(c.valor||0).toFixed(2)}</td><td>${c.vencimento||'—'}</td><td><span class="status-badge status-${statusShow}">${statusShow==='vencido'?'Vencida':statusShow==='pago'?'Paga':'Em aberto'}</span></td><td>${c.status!=='pago'?`<button class="btn-icon" onclick="marcarComoPago('${c.id}')" title="Marcar como pago"><i class="ti ti-check"></i></button>`:''} <button class="btn-icon" onclick="editConta('${c.id}')"><i class="ti ti-edit"></i></button> <button class="btn-icon" onclick="excluirConta('${c.id}')"><i class="ti ti-trash"></i></button></td></tr>`}).join('');
+  renderContasKpis();
+}
+function renderContasKpis(){
+  const hoje=new Date().toISOString().split('T')[0];
+  const aPagar=DATA.contas.filter(c=>c.tipo==='despesa'&&c.status!=='pago').reduce((s,c)=>s+(c.valor||0),0);
+  const aReceber=DATA.contas.filter(c=>c.tipo==='receita'&&c.status!=='pago').reduce((s,c)=>s+(c.valor||0),0);
+  const vencidas=DATA.contas.filter(c=>c.status!=='pago'&&c.vencimento<hoje).length;
+  const saldo=aReceber-aPagar;
+  document.getElementById('contasKpis').innerHTML=[
+    kpiCard('ti-arrow-down-circle','#EF4444',mFmt(aPagar),'A Pagar'),
+    kpiCard('ti-arrow-up-circle','#10B981',mFmt(aReceber),'A Receber'),
+    kpiCard('ti-scale','#F59E0B',mFmt(saldo),'Saldo Previsto'),
+    kpiCard('ti-alert-triangle','#EF4444',vencidas,'Contas Vencidas')
+  ].join('');
+}
+function filterContaStatus(el,f){currentContaFilter=f;document.querySelectorAll('#page-contas .filter-bar .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderContas(f);}
+async function salvarConta(){
+  const id=document.getElementById('contaId').value;
+  const conta={id:id||genId(),descricao:document.getElementById('contaDescricao').value.trim(),tipo:document.getElementById('contaTipo').value,categoria:document.getElementById('contaCategoria').value.trim(),valor:parseFloat(document.getElementById('contaValor').value)||0,vencimento:document.getElementById('contaVencimento').value,status:document.getElementById('contaStatus').value};
+  if(!conta.descricao){showToast('Informe a descrição','ti-alert-triangle');return;}
+  if(id){const idx=DATA.contas.findIndex(c=>c.id===id);DATA.contas[idx]=conta;}else DATA.contas.push(conta);
+  await saveCollection('contas');logActivity(`Conta "${esc(conta.descricao)}" ${id?'atualizada':'cadastrada'}`);
+  closeModal('modalConta');clearContaForm();renderContas();showToast(`Conta ${id?'atualizada':'cadastrada'}!`);
+}
+function editConta(id){const c=DATA.contas.find(x=>x.id===id);if(!c)return;document.getElementById('contaId').value=c.id;document.getElementById('contaDescricao').value=c.descricao;document.getElementById('contaTipo').value=c.tipo;document.getElementById('contaCategoria').value=c.categoria||'';document.getElementById('contaValor').value=c.valor;document.getElementById('contaVencimento').value=c.vencimento||'';document.getElementById('contaStatus').value=c.status;document.getElementById('modalContaTitle').textContent='Editar Conta';openModal('modalConta');}
+async function marcarComoPago(id){const idx=DATA.contas.findIndex(c=>c.id===id);if(idx<0)return;DATA.contas[idx].status='pago';await saveCollection('contas');renderContas();showToast('Marcada como paga!');}
+async function excluirConta(id){if(!confirm('Excluir esta conta?'))return;DATA.contas=DATA.contas.filter(c=>c.id!==id);await saveCollection('contas');renderContas();showToast('Conta excluída','ti-trash');}
+function clearContaForm(){['contaId','contaDescricao','contaCategoria','contaValor','contaVencimento'].forEach(id=>document.getElementById(id).value='');document.getElementById('contaTipo').value='despesa';document.getElementById('contaStatus').value='pendente';document.getElementById('modalContaTitle').textContent='Nova Conta';}
+function calcularCustoArroba(){
+  const desp=parseFloat(document.getElementById('custoDespesas').value)||0;
+  const arrobas=parseFloat(document.getElementById('custoArrobas').value)||0;
+  const res=document.getElementById('custoArrobaResultado');
+  if(!arrobas){res.innerHTML='<span style="color:var(--danger)">Informe as arrobas produzidas</span>';return;}
+  const custo=desp/arrobas;
+  res.innerHTML=`Custo por arroba: <strong style="color:var(--amber);font-size:18px">R$ ${custo.toFixed(2)}</strong>`;
+}
+function renderFluxo(){
+  const meses={};
+  DATA.contas.forEach(c=>{if(!c.vencimento)return;const m=c.vencimento.slice(0,7);meses[m]=meses[m]||{receita:0,despesa:0};meses[m][c.tipo]+=c.valor||0;});
+  const labels=Object.keys(meses).sort();
+  const ctx=document.getElementById('chartFluxo');if(!ctx)return;
+  if(window._chartFluxo)window._chartFluxo.destroy();
+  window._chartFluxo=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Receitas',data:labels.map(m=>meses[m].receita),backgroundColor:'#10B981'},{label:'Despesas',data:labels.map(m=>meses[m].despesa),backgroundColor:'#EF4444'}]},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
+}
+
+// ========== DASHBOARD ==========
+function kpiCard(icon,color,value,label){return `<div class="kpi-card"><div class="kpi-icon" style="background:${color}22;color:${color}"><i class="ti ${icon}"></i></div><div class="kpi-info"><div class="kpi-value">${value}</div><div class="kpi-label">${label}</div></div></div>`;}
+function mFmt(v){return 'R$ '+ (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function refreshDashboard(){
+  const ativos=DATA.animais.filter(a=>a.status==='ativo');
+  const hoje=new Date().toISOString().split('T')[0];
+  const vencidas=DATA.contas.filter(c=>c.status!=='pago'&&c.vencimento<hoje).length;
+  const manejosHoje=DATA.manejos.filter(m=>m.data===hoje).length;
+  const pesoMedio=ativos.length?(ativos.reduce((s,a)=>s+(a.peso||0),0)/ativos.length):0;
+  document.getElementById('dashKpis').innerHTML=[
+    kpiCard('ti-paw','#F59E0B',ativos.length,'Cabeças no Rebanho'),
+    kpiCard('ti-weight','#3B82F6',pesoMedio.toFixed(0)+' kg','Peso Médio'),
+    kpiCard('ti-clipboard-check','#10B981',manejosHoje,'Manejos Hoje'),
+    kpiCard('ti-alert-triangle','#EF4444',vencidas,'Contas Vencidas')
+  ].join('');
+  const cats={};ativos.forEach(a=>{cats[a.categoria]=(cats[a.categoria]||0)+1;});
+  const ctx=document.getElementById('chartCategorias');
+  if(ctx){
+    if(window._chartCat)window._chartCat.destroy();
+    window._chartCat=new Chart(ctx,{type:'doughnut',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:['#F59E0B','#3B82F6','#10B981','#8B5CF6','#F97316','#14B8A6']}]},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
+  }
+  const act=document.getElementById('dashActivity');
+  act.innerHTML=DATA.activity.length?DATA.activity.slice(0,8).map(a=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px"><strong>${esc(a.author)}</strong> — ${esc(a.msg)}<div style="color:var(--text-muted);font-size:11px">${new Date(a.ts).toLocaleString('pt-BR')}</div></div>`).join(''):'<div class="empty-state" style="padding:20px"><i class="ti ti-activity"></i><p>Sem atividade ainda</p></div>';
+  document.getElementById('badgeVencidas').style.display=vencidas>0?'inline-block':'none';document.getElementById('badgeVencidas').textContent=vencidas;
+}
+
+// ========== RELATÓRIOS ==========
+function renderRelatorios(){
+  const ativos=DATA.animais.filter(a=>a.status==='ativo');
+  const mortos=DATA.animais.filter(a=>a.status==='morto').length;
+  const total=DATA.animais.length||1;
+  const pesoMedio=ativos.length?(ativos.reduce((s,a)=>s+(a.peso||0),0)/ativos.length):0;
+  // GMD médio a partir do histórico de peso dos animais
+  let gmdSum=0,gmdCount=0;
+  ativos.forEach(a=>{
+    const h=a.historicoPeso||[];
+    if(h.length>=2){const first=h[0],last=h[h.length-1];const dias=(new Date(last.data)-new Date(first.data))/864e5;if(dias>0){gmdSum+=(last.peso-first.peso)/dias;gmdCount++;}}
+  });
+  const gmdMedio=gmdCount?gmdSum/gmdCount:0;
+  const desp=DATA.contas.filter(c=>c.tipo==='despesa').reduce((s,c)=>s+(c.valor||0),0);
+  const custoArrobaEl=document.getElementById('custoArrobas');
+  document.getElementById('relatorioKpis').innerHTML=[
+    kpiCard('ti-paw','#F59E0B',ativos.length,'Cabeças Ativas'),
+    kpiCard('ti-weight','#3B82F6',pesoMedio.toFixed(0)+' kg','Peso Médio'),
+    kpiCard('ti-trending-up','#10B981',gmdMedio.toFixed(2)+' kg/dia','GMD Médio'),
+    kpiCard('ti-skull','#EF4444',((mortos/total)*100).toFixed(1)+'%','Taxa de Mortalidade')
+  ].join('');
+  const cats={};ativos.forEach(a=>{if(!cats[a.categoria])cats[a.categoria]={qtd:0,pesoSoma:0};cats[a.categoria].qtd++;cats[a.categoria].pesoSoma+=a.peso||0;});
+  const catLabels={bezerro:'Bezerro(a)',novilha:'Novilha',garrote:'Garrote',vaca:'Vaca',touro:'Touro',boi:'Boi'};
+  const tb=document.getElementById('tbRelatorioCategorias');
+  const rows=Object.entries(cats);
+  tb.innerHTML=rows.length?rows.map(([k,v])=>`<tr><td>${catLabels[k]||k}</td><td>${v.qtd}</td><td>${(v.pesoSoma/v.qtd).toFixed(0)} kg</td></tr>`).join(''):'<tr><td colspan="3"><div class="empty-state" style="padding:16px"><i class="ti ti-report-analytics"></i><p>Sem dados suficientes</p></div></td></tr>';
+}
+
+// ========== CONFIGURAÇÕES ==========
+async function salvarConfig(){
+  DATA.config={nomeFazenda:document.getElementById('cfgNomeFazenda').value.trim(),cpfCnpj:document.getElementById('cfgCpfCnpj').value,telefone:document.getElementById('cfgTelefone').value,unidade:document.getElementById('cfgUnidade').value,endereco:document.getElementById('cfgEndereco').value.trim()};
+  await saveCollection('config');
+  try{await db.collection('fazendas').doc(fazendaId).update({nome:DATA.config.nomeFazenda||''});document.getElementById('sidebarFazendaNome').textContent=DATA.config.nomeFazenda;}catch(e){}
+  showToast('Configurações salvas!');
+}
+function loadConfig(){
+  const c=DATA.config;
+  document.getElementById('cfgNomeFazenda').value=c.nomeFazenda||'';document.getElementById('cfgCpfCnpj').value=c.cpfCnpj||'';document.getElementById('cfgTelefone').value=c.telefone||'';document.getElementById('cfgUnidade').value=c.unidade||'arroba';document.getElementById('cfgEndereco').value=c.endereco||'';
+  document.getElementById('fazendaCodeDisplay').textContent=fazendaId;
+}
+
+// ========== USUÁRIOS ==========
+async function renderUsuarios(){
+  const tb=document.getElementById('tbUsuarios');
+  const snap=await db.collection('users').where('fazendaId','==',fazendaId).get();
+  const users=snap.docs.map(d=>({id:d.id,...d.data()}));
+  if(!users.length){tb.innerHTML='<tr><td colspan="5"><div class="empty-state"><i class="ti ti-users-group"></i><p>Nenhum usuário encontrado</p></div></td></tr>';return;}
+  const roleLabels={admin:'Administrador',gerente:'Gerente',financeiro:'Financeiro',peao:'Peão de Campo'};
+  tb.innerHTML=users.map(u=>`<tr><td>${esc(u.nome)}</td><td>${esc(u.email)}</td><td><select class="form-select" style="padding:5px 8px;font-size:12px" onchange="alterarRoleUsuario('${u.id}',this.value)">${Object.entries(roleLabels).map(([k,v])=>`<option value="${k}" ${u.role===k?'selected':''}>${v}</option>`).join('')}</select></td><td><span class="status-badge status-${u.status==='ativo'?'ativo':'pendente'}">${u.status}</span></td><td>${u.status==='pendente'?`<button class="btn btn-sm btn-primary" onclick="aprovarUsuario('${u.id}')"><i class="ti ti-check"></i> Aprovar</button>`:''} ${u.id!==currentUser.uid?`<button class="btn-icon" onclick="removerUsuario('${u.id}')"><i class="ti ti-trash"></i></button>`:''}</td></tr>`).join('');
+}
+async function aprovarUsuario(uid){if(!requireAdmin('aprovar usuários'))return;await db.collection('users').doc(uid).update({status:'ativo'});renderUsuarios();showToast('Usuário aprovado!');}
+async function alterarRoleUsuario(uid,role){if(!requireAdmin('alterar papéis'))return;await db.collection('users').doc(uid).update({role});showToast('Papel atualizado!');}
+async function removerUsuario(uid){if(!requireAdmin('remover usuários'))return;if(!confirm('Remover este usuário da fazenda?'))return;await db.collection('users').doc(uid).delete();renderUsuarios();showToast('Usuário removido','ti-trash');}
+
+// ========== INIT ==========
+document.addEventListener('DOMContentLoaded',()=>{initTheme();ensurePlaceholderPages();updateOnlineBanner();});
+</script>
+</body>
+</html>
