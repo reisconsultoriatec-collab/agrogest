@@ -18,7 +18,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -179,6 +183,28 @@ tbody tr:hover{background:var(--hover-row)}
 @media(max-width:480px){.kpi-grid{grid-template-columns:1fr}}
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 @media print{.sidebar,.topbar,.btn,.search-box,.filter-bar,.modal-overlay{display:none!important}.main{margin-left:0}.content{padding:0}.card{border:none;box-shadow:none;break-inside:avoid}}
+/* Mapa da Fazenda */
+#mapaFazenda{width:100%;height:560px;border-radius:12px;z-index:1}
+.mapa-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border)}
+.mapa-busca{position:relative;display:flex;gap:6px;align-items:center;flex:1 1 260px;min-width:220px}
+.mapa-busca .form-input{flex:1;min-width:0}
+.mapa-busca-resultados{position:absolute;top:calc(100% + 4px);left:0;right:76px;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);max-height:260px;overflow-y:auto;z-index:1200}
+.mapa-busca-item{padding:9px 12px;font-size:13px;color:var(--text);cursor:pointer;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:flex-start}
+.mapa-busca-item:last-child{border-bottom:none}
+.mapa-busca-item:hover{background:var(--bg)}
+.mapa-busca-item i{margin-top:2px;color:var(--text-secondary);flex-shrink:0}
+.mapa-busca-vazio{padding:10px 12px;font-size:13px;color:var(--text-secondary)}
+.mapa-legend{display:flex;flex-wrap:wrap;gap:14px;padding:10px 16px;font-size:12px;color:var(--text-secondary);border-bottom:1px solid var(--border)}
+.mapa-legend-item{display:flex;align-items:center;gap:6px}
+.mapa-legend-dot{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,.2)}
+.mapa-hint{background:var(--info-bg);color:#1E40AF;font-size:12px;padding:10px 16px;display:flex;gap:8px;align-items:flex-start}
+.leaflet-popup-content{font-family:'Inter',sans-serif;font-size:12px}
+[data-theme="dark"] .leaflet-tile{filter:brightness(.85) contrast(1.05)}
+[data-theme="dark"] .leaflet-popup-content-wrapper,[data-theme="dark"] .leaflet-popup-tip{background:var(--card);color:var(--text)}
+[data-theme="dark"] .leaflet-container a{color:var(--amber)}
+[data-theme="dark"] .leaflet-bar a{background:var(--card);color:var(--text);border-color:var(--border)}
+[data-theme="dark"] .leaflet-bar a:hover{background:var(--bg)}
+[data-theme="dark"] .leaflet-control-layers{background:var(--card);color:var(--text)}
 </style>
 </head>
 <body>
@@ -219,20 +245,26 @@ tbody tr:hover{background:var(--hover-row)}
       <div class="nav-section-items collapsed">
         <div class="nav-item" data-page="animais" onclick="navigate('animais')"><i class="icon-cow"></i> Rebanho</div>
         <div class="nav-item" data-page="manejo" onclick="navigate('manejo')"><i class="ti ti-clipboard-check"></i> Manejo de Curral</div>
-        <div class="nav-item" data-page="reproducao" onclick="navigate('reproducao')"><i class="ti ti-heartbeat"></i> Reprodução<span class="badge-soon">Fase 2</span></div>
-        <div class="nav-item" data-page="sanidade" onclick="navigate('sanidade')"><i class="ti ti-shield-plus"></i> Sanidade<span class="badge-soon">Fase 2</span></div>
-        <div class="nav-item" data-page="nutricao" onclick="navigate('nutricao')"><i class="ti ti-apple"></i> Nutrição<span class="badge-soon">Fase 2</span></div>
-        <div class="nav-item" data-page="pastagens" onclick="navigate('pastagens')"><i class="ti ti-map-2"></i> Pastagens<span class="badge-soon">Fase 2</span></div>
-        <div class="nav-item" data-page="ordenha" onclick="navigate('ordenha')"><i class="ti ti-droplet"></i> Ordenha e Leite<span class="badge-soon">Fase 2</span></div>
+        <div class="nav-item" data-page="reproducao" onclick="navigate('reproducao')"><i class="ti ti-heartbeat"></i> Reprodução<span class="badge" id="badgeReproducao" style="display:none">0</span></div>
+        <div class="nav-item" data-page="sanidade" onclick="navigate('sanidade')"><i class="ti ti-shield-plus"></i> Sanidade<span class="badge" id="badgeSanidade" style="display:none">0</span></div>
+        <div class="nav-item" data-page="nutricao" onclick="navigate('nutricao')"><i class="ti ti-apple"></i> Nutrição<span class="badge" id="badgeNutricao" style="display:none">0</span></div>
+        <div class="nav-item" data-page="pastagens" onclick="navigate('pastagens')"><i class="ti ti-map-2"></i> Pastagens</div>
+        <div class="nav-item" data-page="ordenha" onclick="navigate('ordenha')"><i class="ti ti-droplet"></i> Ordenha e Leite</div>
         <div class="nav-item" data-page="gps" onclick="navigate('gps')"><i class="ti ti-map-pin"></i> Rastreamento GPS<span class="badge-soon">Fase 4</span></div>
       </div>
     </div>
     <div class="nav-section">
       <div class="nav-section-title collapsed" onclick="toggleSection(this)"><span>AGRICULTURA</span><i class="ti ti-chevron-down"></i></div>
       <div class="nav-section-items collapsed">
-        <div class="nav-item" data-page="talhoes" onclick="navigate('talhoes')"><i class="ti ti-map"></i> Talhões<span class="badge-soon">Fase 3</span></div>
-        <div class="nav-item" data-page="safras" onclick="navigate('safras')"><i class="ti ti-leaf"></i> Safras<span class="badge-soon">Fase 3</span></div>
-        <div class="nav-item" data-page="insumos" onclick="navigate('insumos')"><i class="ti ti-package"></i> Insumos<span class="badge-soon">Fase 3</span></div>
+        <div class="nav-item" data-page="talhoes" onclick="navigate('talhoes')"><i class="ti ti-map"></i> Talhões</div>
+        <div class="nav-item" data-page="safras" onclick="navigate('safras')"><i class="ti ti-leaf"></i> Safras<span class="badge" id="badgeSafras" style="display:none">0</span></div>
+        <div class="nav-item" data-page="insumos" onclick="navigate('insumos')"><i class="ti ti-package"></i> Insumos<span class="badge" id="badgeInsumos" style="display:none">0</span></div>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-section-title collapsed" onclick="toggleSection(this)"><span>MAPA</span><i class="ti ti-chevron-down"></i></div>
+      <div class="nav-section-items collapsed">
+        <div class="nav-item" data-page="mapa" onclick="navigate('mapa')"><i class="ti ti-map-pin"></i> Mapa da Fazenda</div>
       </div>
     </div>
     <div class="nav-section">
@@ -334,7 +366,11 @@ tbody tr:hover{background:var(--hover-row)}
       <div class="kpi-grid" id="dashKpis"></div>
       <div class="form-row">
         <div class="card"><div class="card-header"><div class="card-title"><i class="ti ti-chart-pie"></i> Rebanho por Categoria</div></div><canvas id="chartCategorias" height="200"></canvas></div>
-        <div class="card"><div class="card-header"><div class="card-title"><i class="ti ti-activity"></i> Atividade Recente</div></div><div id="dashActivity"></div></div>
+        <div class="card"><div class="card-header"><div class="card-title"><i class="ti ti-chart-bar"></i> Animais por Piquete</div></div><canvas id="chartPiquetes" height="200"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-map-pin"></i> Cercas Virtuais — Ocupação</div></div>
+        <div class="table-container"><table><thead><tr><th>Cerca</th><th>Categoria</th><th>Vínculo</th><th>Ocupação</th></tr></thead><tbody id="tbDashCercas"></tbody></table></div>
       </div>
     </div>
   </div>
@@ -377,6 +413,207 @@ tbody tr:hover{background:var(--hover-row)}
           <div class="filter-chip" onclick="filterManejoTipo(this,'movimentacao')">Movimentação</div>
         </div>
         <div class="table-container"><table><thead><tr><th>Data</th><th>Animal</th><th>Tipo</th><th>Detalhe</th><th>Registrado por</th><th></th></tr></thead><tbody id="tbManejo"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPRODUÇÃO -->
+  <div class="page" id="page-reproducao">
+    <div class="content">
+      <div class="kpi-grid" id="reproducaoKpis"></div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-heartbeat"></i> Cobertura / IATF</div>
+          <button class="btn btn-primary btn-sm" onclick="clearCoberturaForm();openModal('modalCobertura')"><i class="ti ti-plus"></i> Nova Cobertura</button>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-chip active" onclick="filterReproducao(this,'todas')">Todas</div>
+          <div class="filter-chip" onclick="filterReproducao(this,'aguardando_diagnostico')">Diagnóstico Pendente</div>
+          <div class="filter-chip" onclick="filterReproducao(this,'prenhas')">Prenhas</div>
+          <div class="filter-chip" onclick="filterReproducao(this,'partos_previstos')">Partos Previstos (30d)</div>
+        </div>
+        <div class="table-container"><table><thead><tr><th>Fêmea</th><th>Tipo</th><th>Data</th><th>Touro/Sêmen</th><th>Diagnóstico</th><th>Previsão de Parto</th><th></th></tr></thead><tbody id="tbReproducao"></tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-calendar-event"></i> Partos Registrados</div></div>
+        <div class="table-container"><table><thead><tr><th>Mãe</th><th>Data do Parto</th><th>Cria</th><th>Observação</th></tr></thead><tbody id="tbPartos"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SANIDADE -->
+  <div class="page" id="page-sanidade">
+    <div class="content">
+      <div class="kpi-grid" id="sanidadeKpis"></div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-vaccine"></i> Protocolos Sanitários</div>
+          <button class="btn btn-primary btn-sm" onclick="clearProtocoloForm();openModal('modalProtocolo')"><i class="ti ti-plus"></i> Novo Protocolo</button>
+        </div>
+        <div class="table-container"><table><thead><tr><th>Nome</th><th>Tipo</th><th>Repetir a cada</th><th>Carência Leite</th><th>Carência Carne</th><th></th></tr></thead><tbody id="tbProtocolos"></tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-calendar-exclamation"></i> Agenda de Vacinação</div></div>
+        <div class="filter-bar">
+          <div class="filter-chip active" onclick="filterAgendaSanidade(this,'pendentes')">Pendentes</div>
+          <div class="filter-chip" onclick="filterAgendaSanidade(this,'todos')">Todos os animais</div>
+        </div>
+        <div class="table-container"><table><thead><tr><th>Animal</th><th>Protocolo</th><th>Última Aplicação</th><th>Próxima Aplicação</th><th>Status</th><th></th></tr></thead><tbody id="tbAgendaSanidade"></tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-hourglass"></i> Período de Carência Ativo</div></div>
+        <div class="table-container"><table><thead><tr><th>Animal</th><th>Protocolo</th><th>Aplicado em</th><th>Carência Leite até</th><th>Carência Carne até</th></tr></thead><tbody id="tbCarencia"></tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-skull"></i> Mortalidade</div></div>
+        <div class="table-container"><table><thead><tr><th>Animal</th><th>Data do Óbito</th><th>Causa</th><th></th></tr></thead><tbody id="tbMortalidade"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NUTRIÇÃO -->
+  <div class="page" id="page-nutricao">
+    <div class="content">
+      <div class="kpi-grid" id="nutricaoKpis"></div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-apple"></i> Planos Nutricionais</div>
+          <button class="btn btn-primary btn-sm" onclick="clearDietaForm();openModal('modalDieta')"><i class="ti ti-plus"></i> Novo Plano</button>
+        </div>
+        <div class="table-container"><table><thead><tr><th>Nome</th><th>Categoria Alvo</th><th>Tipo</th><th>Consumo MS/dia</th><th>Custo/dia (cabeça)</th><th></th></tr></thead><tbody id="tbDietas"></tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-report-money"></i> Custo por Categoria</div></div>
+        <div class="table-container"><table><thead><tr><th>Categoria</th><th>Cabeças Ativas</th><th>Plano Aplicado</th><th>Custo Diário Total</th><th>Custo Diário/Cabeça</th></tr></thead><tbody id="tbCustoCategoria"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASTAGENS -->
+  <div class="page" id="page-pastagens">
+    <div class="content">
+      <div class="kpi-grid" id="pastagensKpis"></div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-map-2"></i> Piquetes</div>
+          <button class="btn btn-primary btn-sm" onclick="clearPiqueteForm();openModal('modalPiquete')"><i class="ti ti-plus"></i> Novo Piquete</button>
+        </div>
+        <div class="table-container"><table><thead><tr><th>Nome</th><th>Área (ha)</th><th>Forragem</th><th>Cabeças</th><th>Lotação (cab/ha)</th><th>Status</th><th></th></tr></thead><tbody id="tbPiquetes"></tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-history"></i> Histórico de Rotação</div></div>
+        <div class="table-container"><table><thead><tr><th>Piquete</th><th>Mudança</th><th>Data</th><th>Observação</th></tr></thead><tbody id="tbRotacoes"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORDENHA E LEITE -->
+  <div class="page" id="page-ordenha">
+    <div class="content">
+      <div class="kpi-grid" id="ordenhaKpis"></div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-chart-line"></i> Produção Diária (últimos 30 dias)</div></div>
+        <div style="padding:16px"><canvas id="chartOrdenha" height="80"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-trophy"></i> Ranking de Produção por Vaca (30 dias)</div></div>
+        <div class="table-container"><table><thead><tr><th>Vaca</th><th>Total (L)</th><th>Ordenhas</th><th>Média por Ordenha (L)</th></tr></thead><tbody id="tbRankingOrdenha"></tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-droplet"></i> Últimos Registros de Ordenha</div>
+          <button class="btn btn-primary btn-sm" onclick="clearManejoForm();document.getElementById('manejoTipo').value='ordenha';toggleManejoPesoField();openModal('modalManejo')"><i class="ti ti-plus"></i> Registrar Ordenha</button>
+        </div>
+        <div class="table-container"><table><thead><tr><th>Data</th><th>Vaca</th><th>Volume (L)</th><th>Observação</th></tr></thead><tbody id="tbUltimasOrdenhas"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TALHÕES -->
+  <div class="page" id="page-talhoes">
+    <div class="content">
+      <div class="kpi-grid" id="talhoesKpis"></div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-map"></i> Talhões</div>
+          <button class="btn btn-primary btn-sm" onclick="clearTalhaoForm();openModal('modalTalhao')"><i class="ti ti-plus"></i> Novo Talhão</button>
+        </div>
+        <div class="table-container"><table><thead><tr><th>Nome</th><th>Área (ha)</th><th>Tipo de Solo</th><th>Safra Atual</th><th>Status</th><th></th></tr></thead><tbody id="tbTalhoes"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAFRAS -->
+  <div class="page" id="page-safras">
+    <div class="content">
+      <div class="kpi-grid" id="safrasKpis"></div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-leaf"></i> Safras</div>
+          <button class="btn btn-primary btn-sm" onclick="clearSafraForm();openModal('modalSafra')"><i class="ti ti-plus"></i> Nova Safra</button>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-chip active" onclick="filterSafras(this,'todas')">Todas</div>
+          <div class="filter-chip" onclick="filterSafras(this,'plantada')">Em Andamento</div>
+          <div class="filter-chip" onclick="filterSafras(this,'colheita_prevista')">Colheita Prevista (30d)</div>
+          <div class="filter-chip" onclick="filterSafras(this,'colhida')">Colhidas</div>
+        </div>
+        <div class="table-container"><table><thead><tr><th>Talhão</th><th>Cultura</th><th>Plantio</th><th>Previsão Colheita</th><th>Status</th><th></th></tr></thead><tbody id="tbSafras"></tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-report-money"></i> Custo de Insumos por Safra</div></div>
+        <div class="table-container"><table><thead><tr><th>Safra</th><th>Área (ha)</th><th>Custo Total Insumos</th><th>Custo/ha</th></tr></thead><tbody id="tbCustoSafra"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSUMOS -->
+  <div class="page" id="page-insumos">
+    <div class="content">
+      <div class="kpi-grid" id="insumosKpis"></div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-package"></i> Catálogo de Insumos</div>
+          <button class="btn btn-primary btn-sm" onclick="clearInsumoForm();openModal('modalInsumo')"><i class="ti ti-plus"></i> Novo Insumo</button>
+        </div>
+        <div class="table-container"><table><thead><tr><th>Nome</th><th>Tipo</th><th>Unidade</th><th>Estoque Atual</th><th>Custo Unitário</th><th></th></tr></thead><tbody id="tbInsumos"></tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-clipboard-list"></i> Aplicações Recentes</div>
+          <button class="btn btn-primary btn-sm" onclick="clearAplicacaoForm();openModal('modalAplicacaoInsumo')"><i class="ti ti-plus"></i> Registrar Aplicação</button>
+        </div>
+        <div class="table-container"><table><thead><tr><th>Data</th><th>Insumo</th><th>Safra</th><th>Quantidade</th><th>Custo Total</th><th></th></tr></thead><tbody id="tbAplicacoes"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAPA DA FAZENDA -->
+  <div class="page" id="page-mapa">
+    <div class="content">
+      <div class="kpi-grid" id="mapaKpis"></div>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="mapa-hint"><i class="ti ti-info-circle" style="font-size:16px;margin-top:1px"></i><span>Clique em "Nova Cerca Virtual" e depois marque os pontos da área direto no mapa — dê duplo clique (ou clique no ponto inicial) para fechar o desenho.</span></div>
+        <div class="mapa-toolbar">
+          <button class="btn btn-primary btn-sm" id="btnNovaCerca" onclick="iniciarDesenhoCerca()"><i class="ti ti-plus"></i> Nova Cerca Virtual</button>
+          <div class="mapa-busca">
+            <input type="text" class="form-input" id="mapaBuscaInput" placeholder="Buscar cidade, endereço, local..." onkeydown="if(event.key==='Enter'){event.preventDefault();buscarLocalNoMapa();}">
+            <button class="btn btn-secondary btn-sm" onclick="buscarLocalNoMapa()"><i class="ti ti-search"></i> Buscar</button>
+            <div class="mapa-busca-resultados" id="mapaBuscaResultados" hidden></div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="centralizarNaMinhaLocalizacao()"><i class="ti ti-current-location"></i> Minha Localização</button>
+          <button class="btn btn-secondary btn-sm" onclick="centralizarNaSede()"><i class="ti ti-home"></i> Centralizar na Sede</button>
+        </div>
+        <div class="mapa-legend">
+          <span class="mapa-legend-item"><span class="mapa-legend-dot" style="background:#10B981"></span> Plantio</span>
+          <span class="mapa-legend-item"><span class="mapa-legend-dot" style="background:#F59E0B"></span> Pasto</span>
+          <span class="mapa-legend-item"><span class="mapa-legend-dot" style="background:#3B82F6"></span> Outra</span>
+        </div>
+        <div id="mapaFazenda"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-list"></i> Cercas Virtuais Cadastradas</div></div>
+        <div class="table-container"><table><thead><tr><th>Nome</th><th>Categoria</th><th>Vínculo</th><th>Área (ha)</th><th></th></tr></thead><tbody id="tbCercas"></tbody></table></div>
       </div>
     </div>
   </div>
@@ -445,6 +682,10 @@ tbody tr:hover{background:var(--hover-row)}
           <div class="form-group"><label class="form-label">Unidade padrão de peso</label><select class="form-select" id="cfgUnidade"><option value="arroba">Arroba (@)</option><option value="kg">Quilograma (kg)</option></select></div>
         </div>
         <div class="form-group"><label class="form-label">Endereço</label><input type="text" class="form-input" id="cfgEndereco"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Latitude da sede (centraliza o Mapa da Fazenda)</label><input type="text" class="form-input" id="cfgLatitude" placeholder="Ex: -23.5489"></div>
+          <div class="form-group"><label class="form-label">Longitude da sede</label><input type="text" class="form-input" id="cfgLongitude" placeholder="Ex: -46.9339"></div>
+        </div>
         <button class="btn btn-primary btn-sm" onclick="salvarConfig()"><i class="ti ti-device-floppy"></i> Salvar</button>
       </div>
       <div class="card">
@@ -477,13 +718,25 @@ tbody tr:hover{background:var(--hover-row)}
     <div class="modal-body">
       <input type="hidden" id="animalId">
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Brinco / Chip (identificação) *</label><input type="text" class="form-input" id="animalBrinco" placeholder="Ex: BR-00231"></div>
+        <div class="form-group">
+          <label class="form-label">Brinco / Chip (identificação) *</label>
+          <select class="form-select" id="animalBrincoModo" style="margin-bottom:6px" onchange="alternarModoBrincoAnimal()">
+            <option value="manual">Digitar manualmente</option>
+            <option value="rfid">Ler com leitor RFID</option>
+          </select>
+          <input type="text" class="form-input" id="animalBrinco" placeholder="Ex: BR-00231" oninput="verificarBrincoDuplicado()" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarLeituraBrinco();}">
+          <div id="animalBrincoHint" style="font-size:11px;margin-top:4px;display:none"></div>
+        </div>
         <div class="form-group"><label class="form-label">Nome (opcional)</label><input type="text" class="form-input" id="animalNome" placeholder="Ex: Mimosa"></div>
       </div>
       <div class="form-row-3">
         <div class="form-group"><label class="form-label">Categoria</label><select class="form-select" id="animalCategoria"><option value="bezerro">Bezerro(a)</option><option value="novilha">Novilha</option><option value="garrote">Garrote</option><option value="vaca">Vaca</option><option value="touro">Touro</option><option value="boi">Boi</option></select></div>
         <div class="form-group"><label class="form-label">Sexo</label><select class="form-select" id="animalSexo"><option value="F">Fêmea</option><option value="M">Macho</option></select></div>
-        <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="animalStatus"><option value="ativo">Ativo</option><option value="vendido">Vendido</option><option value="morto">Baixado</option></select></div>
+        <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="animalStatus" onchange="toggleAnimalObitoFields()"><option value="ativo">Ativo</option><option value="vendido">Vendido</option><option value="morto">Baixado</option></select></div>
+      </div>
+      <div class="form-row" id="animalObitoGroup" style="display:none">
+        <div class="form-group"><label class="form-label">Data do óbito</label><input type="date" class="form-input" id="animalDataObito"></div>
+        <div class="form-group"><label class="form-label">Causa</label><input type="text" class="form-input" id="animalCausaMorte" placeholder="Ex: Doença, acidente, predador..."></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Raça</label><input type="text" class="form-input" id="animalRaca" placeholder="Ex: Nelore"></div>
@@ -510,13 +763,272 @@ tbody tr:hover{background:var(--hover-row)}
     <div class="modal-body">
       <div class="form-group"><label class="form-label">Animal (brinco/chip) *</label><select class="form-select" id="manejoAnimalId"></select></div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="manejoTipo" onchange="toggleManejoPesoField()"><option value="pesagem">Pesagem</option><option value="vacina">Vacina/Tratamento</option><option value="movimentacao">Movimentação de Lote</option><option value="outro">Outro</option></select></div>
+        <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="manejoTipo" onchange="toggleManejoPesoField()"><option value="pesagem">Pesagem</option><option value="vacina">Vacina/Tratamento</option><option value="movimentacao">Movimentação de Lote</option><option value="ordenha">Ordenha</option><option value="outro">Outro</option></select></div>
         <div class="form-group"><label class="form-label">Data</label><input type="date" class="form-input" id="manejoData"></div>
       </div>
       <div class="form-group" id="manejoPesoGroup"><label class="form-label">Peso registrado (kg)</label><input type="number" step="0.1" class="form-input" id="manejoPeso"></div>
+      <div class="form-group" id="manejoProtocoloGroup" style="display:none"><label class="form-label">Protocolo sanitário (opcional)</label><select class="form-select" id="manejoProtocoloId"><option value="">Nenhum / avulso</option></select></div>
+      <div class="form-group" id="manejoVolumeGroup" style="display:none"><label class="form-label">Volume ordenhado (litros)</label><input type="number" step="0.1" class="form-input" id="manejoVolume"></div>
       <div class="form-group"><label class="form-label">Observação / Detalhe</label><textarea class="form-textarea" id="manejoObs" placeholder="Ex: Vacina aftosa, lote 3, novo piquete..."></textarea></div>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalManejo')">Cancelar</button><button class="btn btn-primary" onclick="withGuard('salvarManejo',salvarManejo,event.target)"><i class="ti ti-device-floppy"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL PROTOCOLO SANITÁRIO -->
+<div class="modal-overlay" id="modalProtocolo">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="modalProtocoloTitle">Novo Protocolo Sanitário</span><button class="modal-close" onclick="closeModal('modalProtocolo')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="protocoloId">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nome</label><input type="text" class="form-input" id="protocoloNome" placeholder="Ex: Aftosa, Vermifugação, Brucelose..."></div>
+        <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="protocoloTipo"><option value="vacina">Vacina</option><option value="vermifugo">Vermífugo</option><option value="antibiotico">Antibiótico</option><option value="suplemento">Suplemento/Mineral</option><option value="outro">Outro</option></select></div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group"><label class="form-label">Repetir a cada (dias)</label><input type="number" class="form-input" id="protocoloIntervalo" placeholder="0 = dose única"></div>
+        <div class="form-group"><label class="form-label">Carência Leite (dias)</label><input type="number" class="form-input" id="protocoloCarenciaLeite" placeholder="0 = não se aplica"></div>
+        <div class="form-group"><label class="form-label">Carência Carne (dias)</label><input type="number" class="form-input" id="protocoloCarenciaCarne" placeholder="0 = não se aplica"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Observações</label><textarea class="form-textarea" id="protocoloObs"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalProtocolo')">Cancelar</button><button class="btn btn-primary" onclick="withGuard('salvarProtocolo',salvarProtocolo,event.target)"><i class="ti ti-device-floppy"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL COBERTURA / IATF -->
+<div class="modal-overlay" id="modalCobertura">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Nova Cobertura / IATF</span><button class="modal-close" onclick="closeModal('modalCobertura')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="coberturaId">
+      <div class="form-group"><label class="form-label">Fêmea (brinco/nome) *</label><select class="form-select" id="coberturaFemeaId"></select></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="coberturaTipo"><option value="monta_natural">Monta Natural</option><option value="iatf">IATF (Inseminação)</option></select></div>
+        <div class="form-group"><label class="form-label">Data</label><input type="date" class="form-input" id="coberturaData"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Touro / Sêmen utilizado</label><input type="text" class="form-input" id="coberturaTouro" placeholder="Ex: Touro Nelore 123 ou lote de sêmen"></div>
+      <div class="form-group"><label class="form-label">Observações</label><textarea class="form-textarea" id="coberturaObs"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalCobertura')">Cancelar</button><button class="btn btn-primary" onclick="withGuard('salvarCobertura',salvarCobertura,event.target)"><i class="ti ti-device-floppy"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL DIAGNÓSTICO DE GESTAÇÃO -->
+<div class="modal-overlay" id="modalDiagnostico">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Registrar Diagnóstico de Gestação</span><button class="modal-close" onclick="closeModal('modalDiagnostico')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="diagnosticoReproducaoId">
+      <div class="card" style="background:var(--info-bg);border:none;padding:10px 14px"><div id="diagnosticoResumo" style="font-size:12px;color:#1E40AF"></div></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Data do diagnóstico</label><input type="date" class="form-input" id="diagnosticoData"></div>
+        <div class="form-group"><label class="form-label">Resultado</label><select class="form-select" id="diagnosticoResultado"><option value="prenha">Prenha (positivo)</option><option value="vazia">Vazia (negativo)</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Observações</label><textarea class="form-textarea" id="diagnosticoObs"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalDiagnostico')">Cancelar</button><button class="btn btn-primary" onclick="withGuard('salvarDiagnostico',salvarDiagnostico,event.target)"><i class="ti ti-device-floppy"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL REGISTRAR PARTO -->
+<div class="modal-overlay" id="modalParto">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Registrar Parto</span><button class="modal-close" onclick="closeModal('modalParto')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="partoReproducaoId">
+      <div class="card" style="background:var(--info-bg);border:none;padding:10px 14px"><div id="partoResumo" style="font-size:12px;color:#1E40AF"></div></div>
+      <div class="form-group"><label class="form-label">Data do parto</label><input type="date" class="form-input" id="partoData"></div>
+      <div class="form-row-3">
+        <div class="form-group"><label class="form-label">Sexo da cria</label><select class="form-select" id="partoSexoCria"><option value="F">Fêmea</option><option value="M">Macho</option></select></div>
+        <div class="form-group"><label class="form-label">Peso ao nascer (kg)</label><input type="number" step="0.1" class="form-input" id="partoPesoCria"></div>
+        <div class="form-group"><label class="form-label">Brinco/chip da cria</label><input type="text" class="form-input" id="partoBrincoCria" placeholder="Deixe em branco p/ não cadastrar"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Nome da cria (opcional)</label><input type="text" class="form-input" id="partoNomeCria"></div>
+      <div class="form-group"><label class="form-label">Observações</label><textarea class="form-textarea" id="partoObs"></textarea></div>
+      <div style="font-size:11px;color:var(--text-muted)"><i class="ti ti-info-circle"></i> Se informar o brinco da cria, ela será cadastrada automaticamente no Rebanho como bezerro(a), vinculada à mãe.</div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalParto')">Cancelar</button><button class="btn btn-primary" onclick="withGuard('salvarParto',salvarParto,event.target)"><i class="ti ti-device-floppy"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL PLANO NUTRICIONAL (DIETA) -->
+<div class="modal-overlay" id="modalDieta">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="modalDietaTitle">Novo Plano Nutricional</span><button class="modal-close" onclick="closeModal('modalDieta')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="dietaId">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nome do plano</label><input type="text" class="form-input" id="dietaNome" placeholder="Ex: Recria a pasto, Confinamento terminação..."></div>
+        <div class="form-group"><label class="form-label">Categoria alvo</label><select class="form-select" id="dietaCategoria"><option value="todos">Todas as categorias</option><option value="bezerro">Bezerro(a)</option><option value="novilha">Novilha</option><option value="garrote">Garrote</option><option value="vaca">Vaca</option><option value="touro">Touro</option><option value="boi">Boi</option></select></div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group"><label class="form-label">Tipo de alimento</label><select class="form-select" id="dietaTipo"><option value="pasto">Pasto</option><option value="concentrado">Concentrado</option><option value="silagem">Silagem</option><option value="suplemento">Suplemento/Mineral</option><option value="misto">Misto</option></select></div>
+        <div class="form-group"><label class="form-label">Consumo MS (kg/dia/cabeça)</label><input type="number" step="0.01" class="form-input" id="dietaConsumoMS" placeholder="Ex: 8.5"></div>
+        <div class="form-group"><label class="form-label">Custo diário (R$/cabeça)</label><input type="number" step="0.01" class="form-input" id="dietaCusto" placeholder="Ex: 4.20"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Observações</label><textarea class="form-textarea" id="dietaObs"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalDieta')">Cancelar</button><button class="btn btn-primary" onclick="withGuard('salvarDieta',salvarDieta,event.target)"><i class="ti ti-device-floppy"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL PIQUETE -->
+<div class="modal-overlay" id="modalPiquete">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="modalPiqueteTitle">Novo Piquete</span><button class="modal-close" onclick="closeModal('modalPiquete')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="piqueteId">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nome do piquete *</label><input type="text" class="form-input" id="piqueteNome" placeholder="Ex: Piquete 3 (use o mesmo nome do Lote do animal)"></div>
+        <div class="form-group"><label class="form-label">Área (hectares)</label><input type="number" step="0.01" class="form-input" id="piqueteArea"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Forragem / capim</label><input type="text" class="form-input" id="piqueteForragem" placeholder="Ex: Brachiaria, Tifton..."></div>
+        <div class="form-group"><label class="form-label">Status</label><select class="form-select" id="piqueteStatus"><option value="ocupado">Ocupado</option><option value="descanso">Em descanso</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Observações</label><textarea class="form-textarea" id="piqueteObs"></textarea></div>
+      <div style="font-size:11px;color:var(--text-muted)"><i class="ti ti-info-circle"></i> A contagem de cabeças e a lotação são calculadas automaticamente comparando este nome com o campo "Lote/Piquete" cadastrado em cada animal.</div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalPiquete')">Cancelar</button><button class="btn btn-primary" onclick="withGuard('salvarPiquete',salvarPiquete,event.target)"><i class="ti ti-device-floppy"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL TALHÃO -->
+<div class="modal-overlay" id="modalTalhao">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="modalTalhaoTitle">Novo Talhão</span><button class="modal-close" onclick="closeModal('modalTalhao')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="talhaoId">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nome do talhão *</label><input type="text" class="form-input" id="talhaoNome" placeholder="Ex: Talhão 1"></div>
+        <div class="form-group"><label class="form-label">Área (hectares)</label><input type="number" step="0.01" class="form-input" id="talhaoArea"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Tipo de solo</label><input type="text" class="form-input" id="talhaoTipoSolo" placeholder="Ex: Latossolo, Argissolo..."></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Latitude (opcional)</label><input type="text" class="form-input" id="talhaoLatitude" placeholder="Ex: -23.5489"></div>
+        <div class="form-group"><label class="form-label">Longitude (opcional)</label><input type="text" class="form-input" id="talhaoLongitude" placeholder="Ex: -46.9339"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Observações</label><textarea class="form-textarea" id="talhaoObs"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalTalhao')">Cancelar</button><button class="btn btn-primary" onclick="withGuard('salvarTalhao',salvarTalhao,event.target)"><i class="ti ti-device-floppy"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL SAFRA -->
+<div class="modal-overlay" id="modalSafra">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="modalSafraTitle">Nova Safra</span><button class="modal-close" onclick="closeModal('modalSafra')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="safraId">
+      <div class="form-group"><label class="form-label">Talhão *</label><select class="form-select" id="safraTalhaoId" onchange="autoPreencherAreaSafra()"></select></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Cultura</label><input type="text" class="form-input" id="safraCultura" placeholder="Ex: Soja, Milho, Cana-de-açúcar..."></div>
+        <div class="form-group"><label class="form-label">Variedade (opcional)</label><input type="text" class="form-input" id="safraVariedade"></div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group"><label class="form-label">Data de plantio</label><input type="date" class="form-input" id="safraDataPlantio"></div>
+        <div class="form-group"><label class="form-label">Ciclo estimado (dias)</label><input type="number" class="form-input" id="safraCicloDias" placeholder="Ex: 110"></div>
+        <div class="form-group"><label class="form-label">Área plantada (ha)</label><input type="number" step="0.01" class="form-input" id="safraArea"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Observações</label><textarea class="form-textarea" id="safraObs"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalSafra')">Cancelar</button><button class="btn btn-primary" onclick="withGuard('salvarSafra',salvarSafra,event.target)"><i class="ti ti-device-floppy"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL REGISTRAR COLHEITA -->
+<div class="modal-overlay" id="modalColheita">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Registrar Colheita</span><button class="modal-close" onclick="closeModal('modalColheita')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="colheitaSafraId">
+      <div class="card" style="background:var(--info-bg);border:none;padding:10px 14px"><div id="colheitaResumo" style="font-size:12px;color:#1E40AF"></div></div>
+      <div class="form-group"><label class="form-label">Data da colheita</label><input type="date" class="form-input" id="colheitaData"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Quantidade colhida</label><input type="number" step="0.01" class="form-input" id="colheitaQuantidade"></div>
+        <div class="form-group"><label class="form-label">Unidade</label><select class="form-select" id="colheitaUnidade"><option value="sacas">Sacas</option><option value="kg">Kg</option><option value="toneladas">Toneladas</option><option value="arrobas">Arrobas</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Observações</label><textarea class="form-textarea" id="colheitaObs"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalColheita')">Cancelar</button><button class="btn btn-primary" onclick="withGuard('salvarColheita',salvarColheita,event.target)"><i class="ti ti-device-floppy"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL REGISTRAR PERDA DE SAFRA -->
+<div class="modal-overlay" id="modalPerda">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Registrar Perda de Safra</span><button class="modal-close" onclick="closeModal('modalPerda')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="perdaSafraId">
+      <div class="card" style="background:var(--info-bg);border:none;padding:10px 14px"><div id="perdaResumo" style="font-size:12px;color:#1E40AF"></div></div>
+      <div class="form-group"><label class="form-label">Data</label><input type="date" class="form-input" id="perdaData"></div>
+      <div class="form-group"><label class="form-label">Motivo</label><input type="text" class="form-input" id="perdaMotivo" placeholder="Ex: Seca, geada, praga, granizo..."></div>
+      <div class="form-group"><label class="form-label">Observações</label><textarea class="form-textarea" id="perdaObs"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalPerda')">Cancelar</button><button class="btn btn-primary" onclick="withGuard('salvarPerda',salvarPerda,event.target)"><i class="ti ti-device-floppy"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL INSUMO -->
+<div class="modal-overlay" id="modalInsumo">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="modalInsumoTitle">Novo Insumo</span><button class="modal-close" onclick="closeModal('modalInsumo')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="insumoId">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nome *</label><input type="text" class="form-input" id="insumoNome" placeholder="Ex: Ureia, Semente de Soja RR, Glifosato..."></div>
+        <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="insumoTipo"><option value="semente">Semente</option><option value="fertilizante">Fertilizante</option><option value="defensivo">Defensivo</option><option value="corretivo">Corretivo de Solo</option><option value="outro">Outro</option></select></div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group"><label class="form-label">Unidade</label><select class="form-select" id="insumoUnidade"><option value="kg">Kg</option><option value="l">Litro</option><option value="saco">Saco</option><option value="unidade">Unidade</option></select></div>
+        <div class="form-group"><label class="form-label">Estoque atual</label><input type="number" step="0.01" class="form-input" id="insumoEstoque"></div>
+        <div class="form-group"><label class="form-label">Estoque mínimo (alerta)</label><input type="number" step="0.01" class="form-input" id="insumoEstoqueMinimo" placeholder="0 = sem alerta"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Custo unitário (R$)</label><input type="number" step="0.01" class="form-input" id="insumoCusto"></div>
+      <div class="form-group"><label class="form-label">Observações</label><textarea class="form-textarea" id="insumoObs"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalInsumo')">Cancelar</button><button class="btn btn-primary" onclick="withGuard('salvarInsumo',salvarInsumo,event.target)"><i class="ti ti-device-floppy"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL APLICAÇÃO DE INSUMO -->
+<div class="modal-overlay" id="modalAplicacaoInsumo">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Registrar Aplicação de Insumo</span><button class="modal-close" onclick="closeModal('modalAplicacaoInsumo')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="aplicacaoId">
+      <div class="form-group"><label class="form-label">Insumo *</label><select class="form-select" id="aplicacaoInsumoId" onchange="atualizarResumoAplicacao()"></select></div>
+      <div class="form-group"><label class="form-label">Safra (opcional)</label><select class="form-select" id="aplicacaoSafraId"><option value="">Aplicação geral / sem safra</option></select></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Quantidade</label><input type="number" step="0.01" class="form-input" id="aplicacaoQuantidade" oninput="atualizarResumoAplicacao()"></div>
+        <div class="form-group"><label class="form-label">Data</label><input type="date" class="form-input" id="aplicacaoData"></div>
+      </div>
+      <div id="aplicacaoResumo" style="font-size:12px;color:var(--text-muted);margin-bottom:10px"></div>
+      <div class="form-group"><label class="form-label">Observações</label><textarea class="form-textarea" id="aplicacaoObs"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalAplicacaoInsumo')">Cancelar</button><button class="btn btn-primary" onclick="withGuard('salvarAplicacao',salvarAplicacao,event.target)"><i class="ti ti-device-floppy"></i> Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL CERCA VIRTUAL -->
+<div class="modal-overlay" id="modalCerca">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title" id="modalCercaTitle">Nova Cerca Virtual</span><button class="modal-close" onclick="cancelarCerca()"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="cercaId">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nome *</label><input type="text" class="form-input" id="cercaNome" placeholder="Ex: Talhão 1, Piquete 3..."></div>
+        <div class="form-group"><label class="form-label">Categoria</label><select class="form-select" id="cercaCategoria" onchange="atualizarVinculoCerca()"><option value="plantio">Plantio (Talhão)</option><option value="pasto">Pasto (Piquete)</option><option value="outra">Outra</option></select></div>
+      </div>
+      <div class="form-group" id="cercaVinculoGroup"><label class="form-label">Vincular a (opcional)</label><select class="form-select" id="cercaVinculoId" onchange="autoNomeCercaDoVinculo()"><option value="">Nenhum</option></select></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Cor</label><input type="color" class="form-input" id="cercaCor" style="height:42px;padding:4px" value="#10B981"></div>
+        <div class="form-group"><label class="form-label">Área calculada</label><input type="text" class="form-input" id="cercaAreaCalculada" readonly style="background:var(--bg)"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Observações</label><textarea class="form-textarea" id="cercaObs"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="cancelarCerca()">Cancelar</button><button class="btn btn-primary" onclick="withGuard('salvarCerca',salvarCerca,event.target)"><i class="ti ti-device-floppy"></i> Salvar</button></div>
   </div>
 </div>
 
@@ -596,8 +1108,8 @@ db.enablePersistence({synchronizeTabs:true}).catch(e=>{
 
 // ========== STATE ==========
 let currentUser = null, currentUserData = null, fazendaId = null, isRegistering = false;
-let DATA = {animais:[],manejos:[],contas:[],talhoes:[],safras:[],insumos:[],activity:[],config:{}};
-const DATA_COLLECTIONS = ['contas','talhoes','safras','insumos'];
+let DATA = {animais:[],manejos:[],contas:[],talhoes:[],safras:[],insumos:[],aplicacoesInsumo:[],protocolos:[],reproducoes:[],piquetes:[],rotacoesPasto:[],dietas:[],cercas:[],activity:[],config:{}};
+const DATA_COLLECTIONS = ['contas','talhoes','safras','insumos','aplicacoesInsumo','protocolos','reproducoes','piquetes','rotacoesPasto','dietas','cercas'];
 let unsubAnimais=null, unsubManejos=null;
 let currentAnimalFilter='todos', currentManejoFilter='todos', currentContaFilter='todos';
 
@@ -767,6 +1279,7 @@ function enterApp(){
   applyRolePermissions();
   populateFazendaSelector();
   setupAnimaisListener();setupManejosListener();
+  updateSafrasBadge();updateInsumosBadge();
   updateOnlineBanner();
   navigate('dashboard');
   updateLastAccess();
@@ -811,6 +1324,11 @@ function setupAnimaisListener(){
     if(document.getElementById('page-animais').classList.contains('active'))renderAnimais(currentAnimalFilter,document.getElementById('searchAnimal')?.value||'');
     if(document.getElementById('page-dashboard').classList.contains('active'))refreshDashboard();
     if(document.getElementById('page-relatorios').classList.contains('active'))renderRelatorios();
+    if(document.getElementById('page-sanidade').classList.contains('active'))renderSanidade();else updateSanidadeBadge();
+    if(document.getElementById('page-reproducao').classList.contains('active'))renderReproducaoAll();else updateReproducaoBadge();
+    if(document.getElementById('page-nutricao').classList.contains('active'))renderNutricao();else updateNutricaoBadge();
+    if(document.getElementById('page-pastagens').classList.contains('active'))renderPastagens();
+    if(document.getElementById('page-ordenha').classList.contains('active'))renderOrdenha();
     populateAnimalSelect();
   },err=>console.warn('animais onSnapshot',err));
 }
@@ -820,6 +1338,8 @@ function setupManejosListener(){
     DATA.manejos=snap.docs.map(d=>({id:d.id,...d.data()}));
     if(document.getElementById('page-manejo').classList.contains('active'))renderManejos();
     if(document.getElementById('page-dashboard').classList.contains('active'))refreshDashboard();
+    if(document.getElementById('page-sanidade').classList.contains('active'))renderSanidade();else updateSanidadeBadge();
+    if(document.getElementById('page-ordenha').classList.contains('active'))renderOrdenha();
   },err=>console.warn('manejos onSnapshot',err));
 }
 function populateAnimalSelect(){
@@ -850,17 +1370,9 @@ async function withGuard(key,fn,btnEl){
 }
 
 // ========== NAVIGATION ==========
-const PAGE_TITLES={dashboard:'Dashboard',animais:'Rebanho',manejo:'Manejo de Curral',reproducao:'Reprodução',sanidade:'Sanidade',nutricao:'Nutrição',pastagens:'Pastagens',ordenha:'Ordenha e Leite',gps:'Rastreamento GPS',talhoes:'Talhões',safras:'Safras',insumos:'Insumos',contas:'Contas',fluxo:'Fluxo de Caixa',comprasvendas:'Compra/Venda de Animais',relatorios:'Indicadores',config:'Configurações',usuarios:'Usuários'};
+const PAGE_TITLES={dashboard:'Dashboard',animais:'Rebanho',manejo:'Manejo de Curral',reproducao:'Reprodução',sanidade:'Sanidade',nutricao:'Nutrição',pastagens:'Pastagens',ordenha:'Ordenha e Leite',gps:'Rastreamento GPS',talhoes:'Talhões',safras:'Safras',insumos:'Insumos',mapa:'Mapa da Fazenda',contas:'Contas',fluxo:'Fluxo de Caixa',comprasvendas:'Compra/Venda de Animais',relatorios:'Indicadores',config:'Configurações',usuarios:'Usuários'};
 const PLACEHOLDER_PAGES={
-  reproducao:{icon:'ti-heartbeat',fase:'Fase 2',desc:'Estação de monta, IATF, diagnóstico de gestação e previsão de partos.'},
-  sanidade:{icon:'ti-shield-plus',fase:'Fase 2',desc:'Calendário de vacinação, protocolos e período de carência.'},
-  nutricao:{icon:'ti-apple',fase:'Fase 2',desc:'Controle de dieta, consumo de matéria seca e conversão alimentar.'},
-  pastagens:{icon:'ti-map-2',fase:'Fase 2',desc:'Cadastro de piquetes, lotação e pastejo rotacionado.'},
-  ordenha:{icon:'ti-droplet',fase:'Fase 2',desc:'Volume por ordenha, curva de lactação e qualidade do leite.'},
   gps:{icon:'ti-map-pin',fase:'Fase 4',desc:'Mapa da fazenda com localização em tempo real assim que um fornecedor de brinco GPS (ex: iBoi, Ceres Tag) for integrado. A estrutura de dados já está preparada — veja a coleção "localizacoes".'},
-  talhoes:{icon:'ti-map',fase:'Fase 3',desc:'Cadastro de talhões/áreas de plantio com geolocalização e histórico de uso.'},
-  safras:{icon:'ti-leaf',fase:'Fase 3',desc:'Planejamento de safra: cultura, variedade, ciclo e acompanhamento plantio-colheita.'},
-  insumos:{icon:'ti-package',fase:'Fase 3',desc:'Controle de sementes, fertilizantes e defensivos, com custo por hectare.'},
   comprasvendas:{icon:'ti-replace',fase:'Fase 2',desc:'Compra e venda de animais com GTA e nota fiscal.'}
 };
 function ensurePlaceholderPages(){
@@ -885,7 +1397,16 @@ function navigate(page){
   document.getElementById('topbarTitle').textContent=PAGE_TITLES[page]||page;
   if(page==='dashboard')refreshDashboard();
   if(page==='animais')renderAnimais();
-  if(page==='manejo'){populateAnimalSelect();document.getElementById('manejoData').value=new Date().toISOString().split('T')[0];renderManejos();}
+  if(page==='manejo'){populateAnimalSelect();populateProtocoloSelect();document.getElementById('manejoData').value=new Date().toISOString().split('T')[0];renderManejos();}
+  if(page==='reproducao')renderReproducaoAll();
+  if(page==='sanidade')renderSanidade();
+  if(page==='nutricao')renderNutricao();
+  if(page==='pastagens')renderPastagens();
+  if(page==='ordenha')renderOrdenha();
+  if(page==='talhoes')renderTalhoesAll();
+  if(page==='safras')renderSafrasAll();
+  if(page==='insumos')renderInsumosAll();
+  if(page==='mapa')renderMapa();
   if(page==='contas')renderContas();
   if(page==='fluxo')renderFluxo();
   if(page==='relatorios')renderRelatorios();
@@ -900,7 +1421,7 @@ function toggleSection(el){el.nextElementSibling.classList.toggle('collapsed');e
 function getNotifications(){
   const notifs=[],hoje=new Date().toISOString().split('T')[0];
   const vencidas=(DATA.contas||[]).filter(c=>c.status!=='pago'&&c.vencimento&&c.vencimento<hoje);
-  if(vencidas.length)notifs.push({icon:'ti-alert-triangle',color:'var(--danger)',msg:`${vencidas.length} conta(s) vencida(s)`});
+  if(vencidas.length)notifs.push({icon:'ti-alert-triangle',color:'var(--danger)',msg:esc(`${vencidas.length} conta(s) vencida(s)`)});
   (DATA.activity||[]).slice(0,3).forEach(a=>notifs.push({icon:'ti-point-filled',color:'var(--amber)',msg:a.msg}));
   return notifs;
 }
@@ -909,7 +1430,7 @@ function renderNotifications(){
   const alertCount=notifs.filter(n=>n.color.includes('danger')).length;
   badge.style.display=alertCount>0?'block':'none';
   if(!notifs.length){list.innerHTML='<div class="notif-empty"><i class="ti ti-bell-off" style="font-size:24px;display:block;margin-bottom:6px"></i>Nenhuma notificação</div>';return;}
-  list.innerHTML=notifs.map(n=>`<div class="notif-item"><i class="ti ${n.icon}" style="color:${n.color};font-size:16px;margin-top:1px"></i><span style="flex:1">${esc(n.msg)}</span></div>`).join('');
+  list.innerHTML=notifs.map(n=>`<div class="notif-item"><i class="ti ${n.icon}" style="color:${n.color};font-size:16px;margin-top:1px"></i><span style="flex:1">${n.msg}</span></div>`).join('');
   document.getElementById('badgeVencidas').style.display=vencidasCount()>0?'inline-block':'none';document.getElementById('badgeVencidas').textContent=vencidasCount();
 }
 function vencidasCount(){const hoje=new Date().toISOString().split('T')[0];return(DATA.contas||[]).filter(c=>c.status!=='pago'&&c.vencimento&&c.vencimento<hoje).length;}
@@ -929,7 +1450,7 @@ async function switchFazenda(newId){
   fazendaId=newId;
   await db.collection('users').doc(currentUser.uid).update({fazendaId:newId});
   currentUserData.fazendaId=newId;
-  await loadAllData();setupAnimaisListener();setupManejosListener();navigate('dashboard');hideLoading();
+  await loadAllData();setupAnimaisListener();setupManejosListener();updateSafrasBadge();updateInsumosBadge();navigate('dashboard');hideLoading();
 }
 async function criarNovaFazenda(){
   const nome=document.getElementById('novaFazendaNome').value.trim();
@@ -946,7 +1467,7 @@ async function criarNovaFazenda(){
   await db.collection('users').doc(currentUser.uid).update({fazendas,fazendaId:newId});
   currentUserData.fazendas=fazendas;currentUserData.fazendaId=newId;fazendaId=newId;
   closeModal('modalNovaFazenda');document.getElementById('novaFazendaNome').value='';
-  await loadAllData();setupAnimaisListener();setupManejosListener();populateFazendaSelector();navigate('dashboard');hideLoading();
+  await loadAllData();setupAnimaisListener();setupManejosListener();updateSafrasBadge();updateInsumosBadge();populateFazendaSelector();navigate('dashboard');hideLoading();
   showToast('Fazenda criada!');
 }
 function copiarCodigoFazenda(){navigator.clipboard?.writeText(fazendaId);showToast('Código copiado!','ti-copy');}
@@ -963,6 +1484,52 @@ function renderAnimais(filter=currentAnimalFilter,search=''){
 }
 function filterAnimais(){renderAnimais(currentAnimalFilter,document.getElementById('searchAnimal').value);}
 function filterAnimalStatus(el,f){currentAnimalFilter=f;document.querySelectorAll('#page-animais .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');filterAnimais();}
+function checarDuplicidadeBrinco(valor){
+  const id=document.getElementById('animalId').value;
+  return DATA.animais.find(a=>a.brinco.toLowerCase()===valor.toLowerCase()&&a.id!==id);
+}
+function alternarModoBrincoAnimal(){
+  const modo=document.getElementById('animalBrincoModo').value;
+  const input=document.getElementById('animalBrinco');
+  if(modo==='rfid'){
+    input.placeholder='Aproxime o brinco do leitor...';
+    input.focus();
+  }else{
+    input.placeholder='Ex: BR-00231';
+  }
+  verificarBrincoDuplicado();
+}
+function verificarBrincoDuplicado(){
+  const input=document.getElementById('animalBrinco');
+  const hint=document.getElementById('animalBrincoHint');
+  const modo=document.getElementById('animalBrincoModo').value;
+  const valor=input.value.trim();
+  input.style.borderColor='';
+  if(!valor){
+    if(modo==='rfid'){hint.style.display='block';hint.style.color='var(--text-secondary)';hint.textContent='Aguardando leitura do brinco...';}
+    else hint.style.display='none';
+    return;
+  }
+  const dup=checarDuplicidadeBrinco(valor);
+  if(dup){
+    hint.style.display='block';hint.style.color='var(--danger)';
+    hint.textContent=`Já cadastrado em ${esc(dup.nome||dup.categoria)} — verifique antes de salvar`;
+    input.style.borderColor='var(--danger)';
+  }else if(modo==='rfid'){
+    hint.style.display='block';hint.style.color='var(--success)';
+    hint.textContent=`Brinco lido: ${esc(valor)}`;
+  }else{
+    hint.style.display='none';
+  }
+}
+function confirmarLeituraBrinco(){
+  const modo=document.getElementById('animalBrincoModo').value;
+  const input=document.getElementById('animalBrinco');
+  verificarBrincoDuplicado();
+  if(modo==='rfid'&&input.value.trim()&&!checarDuplicidadeBrinco(input.value.trim())){
+    document.getElementById('animalNome').focus();
+  }
+}
 async function salvarAnimal(){
   clearAllFieldErrors();
   const id=document.getElementById('animalId').value;
@@ -978,6 +1545,8 @@ async function salvarAnimal(){
     peso:parseFloat(document.getElementById('animalPeso').value)||0,lote:document.getElementById('animalLote').value.trim(),
     mae:document.getElementById('animalMae').value.trim(),pai:document.getElementById('animalPai').value.trim(),
     obs:document.getElementById('animalObs').value.trim(),
+    dataObito:document.getElementById('animalStatus').value==='morto'?(document.getElementById('animalDataObito').value||''):'',
+    causaMorte:document.getElementById('animalStatus').value==='morto'?document.getElementById('animalCausaMorte').value.trim():'',
     atualizadoEm:new Date().toISOString()
   };
   const ref=db.collection('fazendas').doc(fazendaId).collection('animais');
@@ -986,12 +1555,15 @@ async function salvarAnimal(){
   logActivity(`Animal ${esc(brinco)} ${id?'atualizado':'cadastrado'}`);
   closeModal('modalAnimal');clearAnimalForm();showToast(`Animal ${id?'atualizado':'cadastrado'}!`);
 }
+function toggleAnimalObitoFields(){document.getElementById('animalObitoGroup').style.display=document.getElementById('animalStatus').value==='morto'?'grid':'none';}
 function editAnimal(id){
   const a=DATA.animais.find(x=>x.id===id);if(!a)return;
   document.getElementById('animalId').value=a.id;document.getElementById('animalBrinco').value=a.brinco||'';document.getElementById('animalNome').value=a.nome||'';
   document.getElementById('animalCategoria').value=a.categoria||'bezerro';document.getElementById('animalSexo').value=a.sexo||'F';document.getElementById('animalStatus').value=a.status||'ativo';
   document.getElementById('animalRaca').value=a.raca||'';document.getElementById('animalNascimento').value=a.nascimento||'';document.getElementById('animalPeso').value=a.peso||'';
   document.getElementById('animalLote').value=a.lote||'';document.getElementById('animalMae').value=a.mae||'';document.getElementById('animalPai').value=a.pai||'';document.getElementById('animalObs').value=a.obs||'';
+  document.getElementById('animalDataObito').value=a.dataObito||'';document.getElementById('animalCausaMorte').value=a.causaMorte||'';toggleAnimalObitoFields();
+  document.getElementById('animalBrincoModo').value='manual';document.getElementById('animalBrinco').placeholder='Ex: BR-00231';document.getElementById('animalBrincoHint').style.display='none';
   document.getElementById('modalAnimalTitle').textContent='Editar Animal';openModal('modalAnimal');
 }
 async function excluirAnimal(id){
@@ -1003,17 +1575,29 @@ async function excluirAnimal(id){
   await db.collection('fazendas').doc(fazendaId).collection('animais').doc(id).delete();
   logActivity(`Animal ${esc(a.brinco)} excluído`);showToast('Animal excluído','ti-trash');
 }
-function clearAnimalForm(){['animalId','animalBrinco','animalNome','animalRaca','animalNascimento','animalPeso','animalLote','animalMae','animalPai','animalObs'].forEach(id=>document.getElementById(id).value='');document.getElementById('animalCategoria').value='bezerro';document.getElementById('animalSexo').value='F';document.getElementById('animalStatus').value='ativo';document.getElementById('modalAnimalTitle').textContent='Novo Animal';}
+function clearAnimalForm(){['animalId','animalBrinco','animalNome','animalRaca','animalNascimento','animalPeso','animalLote','animalMae','animalPai','animalObs','animalDataObito','animalCausaMorte'].forEach(id=>document.getElementById(id).value='');document.getElementById('animalCategoria').value='bezerro';document.getElementById('animalSexo').value='F';document.getElementById('animalStatus').value='ativo';document.getElementById('animalBrincoModo').value='manual';document.getElementById('animalBrinco').placeholder='Ex: BR-00231';document.getElementById('animalBrinco').style.borderColor='';document.getElementById('animalBrincoHint').style.display='none';toggleAnimalObitoFields();document.getElementById('modalAnimalTitle').textContent='Novo Animal';}
 
 // ========== MANEJO DE CURRAL ==========
-function toggleManejoPesoField(){document.getElementById('manejoPesoGroup').style.display=document.getElementById('manejoTipo').value==='pesagem'?'block':'none';}
+function toggleManejoPesoField(){
+  const tipo=document.getElementById('manejoTipo').value;
+  document.getElementById('manejoPesoGroup').style.display=tipo==='pesagem'?'block':'none';
+  document.getElementById('manejoProtocoloGroup').style.display=tipo==='vacina'?'block':'none';
+  document.getElementById('manejoVolumeGroup').style.display=tipo==='ordenha'?'block':'none';
+  if(tipo==='vacina')populateProtocoloSelect();
+}
+function populateProtocoloSelect(){
+  const sel=document.getElementById('manejoProtocoloId');if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Nenhum / avulso</option>'+DATA.protocolos.map(p=>`<option value="${p.id}">${esc(p.nome)}</option>`).join('');
+  if(cur)sel.value=cur;
+}
 function renderManejos(filter=currentManejoFilter){
   let list=[...DATA.manejos];
   if(filter!=='todos')list=list.filter(m=>m.tipo===filter);
   const tb=document.getElementById('tbManejo');if(!tb)return;
   if(!list.length){tb.innerHTML='<tr><td colspan="5"><div class="empty-state"><i class="ti ti-clipboard-check"></i><p>Nenhum registro de manejo</p></div></td></tr>';return;}
-  const tipoLabels={pesagem:'Pesagem',vacina:'Vacina/Tratamento',movimentacao:'Movimentação',outro:'Outro'};
-  tb.innerHTML=list.map(m=>{const a=DATA.animais.find(x=>x.id===m.animalId);return`<tr><td style="white-space:nowrap;font-size:12px">${m.data||'—'}</td><td><span class="brinco-code">${esc(a?a.brinco:'—')}</span></td><td>${tipoLabels[m.tipo]||m.tipo}</td><td>${m.tipo==='pesagem'?(m.peso+' kg'):esc(m.obs||'—')}</td><td>${esc(m.registradoPor||'—')}</td><td><button class="btn-icon" onclick="excluirManejo('${m.id}')"><i class="ti ti-trash"></i></button></td></tr>`}).join('');
+  const tipoLabels={pesagem:'Pesagem',vacina:'Vacina/Tratamento',movimentacao:'Movimentação',ordenha:'Ordenha',outro:'Outro'};
+  tb.innerHTML=list.map(m=>{const a=DATA.animais.find(x=>x.id===m.animalId);const detalhe=m.tipo==='pesagem'?(m.peso+' kg'):(m.tipo==='ordenha'?(m.volumeLeite+' L'):esc(m.obs||'—'));return`<tr><td style="white-space:nowrap;font-size:12px">${m.data||'—'}</td><td><span class="brinco-code">${esc(a?a.brinco:'—')}</span></td><td>${tipoLabels[m.tipo]||m.tipo}</td><td>${detalhe}</td><td>${esc(m.registradoPor||'—')}</td><td><button class="btn-icon" onclick="excluirManejo('${m.id}')"><i class="ti ti-trash"></i></button></td></tr>`}).join('');
 }
 function filterManejoTipo(el,f){currentManejoFilter=f;document.querySelectorAll('#page-manejo .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderManejos(f);}
 async function salvarManejo(){
@@ -1022,6 +1606,8 @@ async function salvarManejo(){
   const tipo=document.getElementById('manejoTipo').value;
   const registro={animalId,tipo,data:document.getElementById('manejoData').value||new Date().toISOString().split('T')[0],obs:document.getElementById('manejoObs').value.trim(),registradoPor:currentUserData?.nome||currentUser.email,criadoEm:new Date().toISOString()};
   if(tipo==='pesagem'){const peso=parseFloat(document.getElementById('manejoPeso').value);if(!peso){showToast('Informe o peso','ti-alert-triangle');return;}registro.peso=peso;}
+  if(tipo==='vacina'){const protocoloId=document.getElementById('manejoProtocoloId').value;if(protocoloId)registro.protocoloId=protocoloId;}
+  if(tipo==='ordenha'){const volume=parseFloat(document.getElementById('manejoVolume').value);if(!volume){showToast('Informe o volume ordenhado','ti-alert-triangle');return;}registro.volumeLeite=volume;}
   // grava o registro (funciona offline — Firestore enfileira automaticamente)
   await db.collection('fazendas').doc(fazendaId).collection('manejos').add(registro);
   // se for pesagem, atualiza o peso atual e histórico do animal
@@ -1033,9 +1619,1110 @@ async function salvarManejo(){
   }
   logActivity(`Manejo (${tipo}) registrado`);
   closeModal('modalManejo');clearManejoForm();showToast(navigator.onLine?'Registro salvo!':'Registro salvo offline — será sincronizado','ti-cloud-check');
+  if(document.getElementById('page-ordenha').classList.contains('active'))renderOrdenha();
 }
 async function excluirManejo(id){if(!confirm('Excluir este registro de manejo?'))return;await db.collection('fazendas').doc(fazendaId).collection('manejos').doc(id).delete();showToast('Registro excluído','ti-trash');}
-function clearManejoForm(){document.getElementById('manejoObs').value='';document.getElementById('manejoPeso').value='';document.getElementById('manejoTipo').value='pesagem';toggleManejoPesoField();document.getElementById('manejoData').value=new Date().toISOString().split('T')[0];}
+function clearManejoForm(){document.getElementById('manejoObs').value='';document.getElementById('manejoPeso').value='';document.getElementById('manejoProtocoloId').value='';document.getElementById('manejoVolume').value='';document.getElementById('manejoTipo').value='pesagem';toggleManejoPesoField();document.getElementById('manejoData').value=new Date().toISOString().split('T')[0];}
+
+// ========== REPRODUÇÃO ==========
+const GESTACAO_DIAS=283; // média da gestação bovina (varia ~279-292 dias conforme raça)
+let currentReproducaoFilter='todas';
+function populateFemeaSelect(){
+  const sel=document.getElementById('coberturaFemeaId');if(!sel)return;
+  const cur=sel.value;
+  const emAberto=new Set(DATA.reproducoes.filter(r=>!r.dataParto&&r.diagnostico!=='vazia').map(r=>r.femeaId));
+  const femeas=DATA.animais.filter(a=>a.status==='ativo'&&a.sexo==='F'&&(a.categoria==='vaca'||a.categoria==='novilha')&&!emAberto.has(a.id));
+  sel.innerHTML=femeas.length?femeas.map(a=>`<option value="${a.id}">${esc(a.brinco)} — ${esc(a.nome||(a.categoria==='vaca'?'Vaca':'Novilha'))}</option>`).join(''):'<option value="">Nenhuma fêmea disponível</option>';
+  if(cur)sel.value=cur;
+}
+function clearCoberturaForm(){clearAllFieldErrors();['coberturaId','coberturaTouro','coberturaObs'].forEach(id=>document.getElementById(id).value='');document.getElementById('coberturaTipo').value='monta_natural';document.getElementById('coberturaData').value=new Date().toISOString().split('T')[0];populateFemeaSelect();}
+async function salvarCobertura(){
+  clearAllFieldErrors();
+  const femeaId=document.getElementById('coberturaFemeaId').value;
+  if(!femeaId){showToast('Selecione uma fêmea','ti-alert-triangle');return;}
+  const data=document.getElementById('coberturaData').value||new Date().toISOString().split('T')[0];
+  const reproducao={id:genId(),femeaId,tipo:document.getElementById('coberturaTipo').value,data,touro:document.getElementById('coberturaTouro').value.trim(),
+    obs:document.getElementById('coberturaObs').value.trim(),diagnostico:'pendente',dataDiagnostico:'',previsaoParto:'',dataParto:'',criadoEm:new Date().toISOString()};
+  DATA.reproducoes.push(reproducao);
+  await saveCollection('reproducoes');
+  const a=DATA.animais.find(x=>x.id===femeaId);
+  logActivity(`Cobertura/IATF registrada para ${esc(a?.brinco||'')}`);
+  closeModal('modalCobertura');clearCoberturaForm();renderReproducaoAll();showToast('Cobertura registrada!');
+}
+async function excluirCobertura(id){
+  const r=DATA.reproducoes.find(x=>x.id===id);if(!r)return;
+  if(!confirm('Excluir este registro de cobertura/gestação?'))return;
+  DATA.reproducoes=DATA.reproducoes.filter(x=>x.id!==id);
+  await saveCollection('reproducoes');logActivity('Registro de cobertura excluído');renderReproducaoAll();showToast('Registro excluído','ti-trash');
+}
+function computeReproducaoStatus(r){
+  const hoje=new Date().toISOString().split('T')[0];
+  if(r.dataParto)return{key:'parida',label:'Parto registrado',cls:'ativo'};
+  if(r.diagnostico==='vazia')return{key:'vazia',label:'Vazia (negativo)',cls:null};
+  if(r.diagnostico==='prenha'){
+    const dias=(new Date(r.previsaoParto)-new Date(hoje))/864e5;
+    if(dias<=0)return{key:'parto_atrasado',label:'Parto atrasado',cls:'vencido'};
+    if(dias<=30)return{key:'parto_proximo',label:'Prenha — parto em breve',cls:'pendente'};
+    return{key:'prenha_confirmada',label:'Prenha confirmada',cls:'ativo'};
+  }
+  const diasCobertura=(new Date(hoje)-new Date(r.data))/864e5;
+  if(diasCobertura>=30)return{key:'aguardando_diagnostico',label:'Diagnóstico pendente',cls:'pendente'};
+  return{key:'aguardando_periodo',label:'Aguardando período',cls:null};
+}
+function statusBadgeHtml(status){
+  return status.cls?`<span class="status-badge status-${status.cls}">${status.label}</span>`:`<span class="status-badge" style="background:var(--border);color:var(--text-muted)">${status.label}</span>`;
+}
+function renderReproducao(filter=currentReproducaoFilter){
+  currentReproducaoFilter=filter;
+  const tipoLabels={monta_natural:'Monta Natural',iatf:'IATF'};
+  let list=DATA.reproducoes.filter(r=>!r.dataParto).map(r=>({r,status:computeReproducaoStatus(r)}));
+  if(filter==='aguardando_diagnostico')list=list.filter(x=>x.status.key==='aguardando_diagnostico');
+  else if(filter==='prenhas')list=list.filter(x=>['prenha_confirmada','parto_proximo','parto_atrasado'].includes(x.status.key));
+  else if(filter==='partos_previstos')list=list.filter(x=>['parto_proximo','parto_atrasado'].includes(x.status.key));
+  list.sort((a,b)=>(a.r.previsaoParto||a.r.data).localeCompare(b.r.previsaoParto||b.r.data));
+  const tb=document.getElementById('tbReproducao');if(!tb)return;
+  if(!list.length){tb.innerHTML='<tr><td colspan="7"><div class="empty-state"><i class="ti ti-heartbeat"></i><p>Nenhum registro encontrado</p></div></td></tr>';return;}
+  tb.innerHTML=list.map(({r,status})=>{
+    const a=DATA.animais.find(x=>x.id===r.femeaId);
+    const acao=status.key==='aguardando_diagnostico'||status.key==='aguardando_periodo'
+      ?`<button class="btn btn-sm btn-primary" onclick="openDiagnostico('${r.id}')"><i class="ti ti-stethoscope"></i> Diagnóstico</button>`
+      :(status.key==='prenha_confirmada'||status.key==='parto_proximo'||status.key==='parto_atrasado'
+        ?`<button class="btn btn-sm btn-primary" onclick="openParto('${r.id}')"><i class="ti ti-baby-carriage"></i> Registrar Parto</button>`:'');
+    return `<tr><td><span class="brinco-code">${esc(a?a.brinco:'—')}</span>${a?.nome?' '+esc(a.nome):''}</td><td>${tipoLabels[r.tipo]||r.tipo}</td><td>${r.data||'—'}</td><td>${esc(r.touro||'—')}</td><td>${statusBadgeHtml(status)}</td><td>${r.previsaoParto||'—'}</td><td>${acao} <button class="btn-icon" onclick="excluirCobertura('${r.id}')"><i class="ti ti-trash"></i></button></td></tr>`;
+  }).join('');
+}
+function filterReproducao(el,f){document.querySelectorAll('#page-reproducao .filter-bar .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderReproducao(f);}
+function openDiagnostico(id){
+  const r=DATA.reproducoes.find(x=>x.id===id);if(!r)return;
+  const a=DATA.animais.find(x=>x.id===r.femeaId);
+  document.getElementById('diagnosticoReproducaoId').value=r.id;
+  document.getElementById('diagnosticoResumo').innerHTML=`<strong>${esc(a?a.brinco:'—')}</strong>${a?.nome?' — '+esc(a.nome):''} · Cobertura em ${r.data||'—'}${r.touro?' · '+esc(r.touro):''}`;
+  document.getElementById('diagnosticoData').value=new Date().toISOString().split('T')[0];
+  document.getElementById('diagnosticoResultado').value='prenha';
+  document.getElementById('diagnosticoObs').value='';
+  openModal('modalDiagnostico');
+}
+async function salvarDiagnostico(){
+  const id=document.getElementById('diagnosticoReproducaoId').value;
+  const r=DATA.reproducoes.find(x=>x.id===id);if(!r)return;
+  const dataDiagnostico=document.getElementById('diagnosticoData').value||new Date().toISOString().split('T')[0];
+  const resultado=document.getElementById('diagnosticoResultado').value;
+  r.dataDiagnostico=dataDiagnostico;r.diagnostico=resultado;
+  r.previsaoParto=resultado==='prenha'?addDays(r.data,GESTACAO_DIAS):'';
+  r.obsDiagnostico=document.getElementById('diagnosticoObs').value.trim();
+  await saveCollection('reproducoes');
+  const a=DATA.animais.find(x=>x.id===r.femeaId);
+  logActivity(`Diagnóstico de gestação (${resultado==='prenha'?'prenha':'vazia'}) — ${esc(a?.brinco||'')}`);
+  closeModal('modalDiagnostico');renderReproducaoAll();showToast('Diagnóstico registrado!');
+}
+function openParto(id){
+  const r=DATA.reproducoes.find(x=>x.id===id);if(!r)return;
+  const a=DATA.animais.find(x=>x.id===r.femeaId);
+  document.getElementById('partoReproducaoId').value=r.id;
+  document.getElementById('partoResumo').innerHTML=`<strong>${esc(a?a.brinco:'—')}</strong>${a?.nome?' — '+esc(a.nome):''} · Previsão de parto: ${r.previsaoParto||'—'}`;
+  document.getElementById('partoData').value=new Date().toISOString().split('T')[0];
+  document.getElementById('partoSexoCria').value='F';
+  document.getElementById('partoPesoCria').value='';document.getElementById('partoBrincoCria').value='';document.getElementById('partoNomeCria').value='';document.getElementById('partoObs').value='';
+  openModal('modalParto');
+}
+async function salvarParto(){
+  const id=document.getElementById('partoReproducaoId').value;
+  const r=DATA.reproducoes.find(x=>x.id===id);if(!r)return;
+  const femea=DATA.animais.find(x=>x.id===r.femeaId);
+  const dataParto=document.getElementById('partoData').value||new Date().toISOString().split('T')[0];
+  const sexoCria=document.getElementById('partoSexoCria').value;
+  const pesoCria=parseFloat(document.getElementById('partoPesoCria').value)||0;
+  const brincoCria=document.getElementById('partoBrincoCria').value.trim();
+  const nomeCria=document.getElementById('partoNomeCria').value.trim();
+  const obsParto=document.getElementById('partoObs').value.trim();
+  if(brincoCria){
+    const dup=DATA.animais.find(a=>a.brinco.toLowerCase()===brincoCria.toLowerCase());
+    if(dup){showToast('Já existe um animal com este brinco/chip','ti-alert-triangle');return;}
+  }
+  r.dataParto=dataParto;r.sexoCria=sexoCria;r.pesoCria=pesoCria;r.brincoCria=brincoCria;r.nomeCria=nomeCria;r.obsParto=obsParto;
+  let animalCriaId='';
+  if(brincoCria){
+    const novaCria={brinco:brincoCria,nome:nomeCria,categoria:'bezerro',sexo:sexoCria,status:'ativo',raca:femea?.raca||'',nascimento:dataParto,
+      peso:pesoCria,lote:femea?.lote||'',mae:femea?.brinco||'',pai:r.touro||'',obs:`Nascido via parto registrado no módulo de Reprodução.${obsParto?' '+obsParto:''}`,
+      dataObito:'',causaMorte:'',criadoEm:new Date().toISOString(),atualizadoEm:new Date().toISOString(),
+      historicoPeso:pesoCria?[{peso:pesoCria,data:dataParto}]:[]};
+    const ref=await db.collection('fazendas').doc(fazendaId).collection('animais').add(novaCria);
+    animalCriaId=ref.id;
+  }
+  r.animalCriaId=animalCriaId;
+  await saveCollection('reproducoes');
+  logActivity(`Parto registrado para ${esc(femea?.brinco||'')}${brincoCria?' — cria '+esc(brincoCria)+' cadastrada':''}`);
+  closeModal('modalParto');renderReproducaoAll();showToast('Parto registrado!');
+}
+function renderPartos(){
+  const list=DATA.reproducoes.filter(r=>r.dataParto).sort((a,b)=>b.dataParto.localeCompare(a.dataParto));
+  const tb=document.getElementById('tbPartos');if(!tb)return;
+  if(!list.length){tb.innerHTML='<tr><td colspan="4"><div class="empty-state"><i class="ti ti-calendar-event"></i><p>Nenhum parto registrado</p></div></td></tr>';return;}
+  tb.innerHTML=list.map(r=>{
+    const femea=DATA.animais.find(x=>x.id===r.femeaId);
+    const cria=r.brincoCria?`<span class="brinco-code">${esc(r.brincoCria)}</span> (${r.sexoCria==='F'?'Fêmea':'Macho'}${r.pesoCria?', '+r.pesoCria+' kg':''})`:`Sem cadastro (${r.sexoCria==='F'?'Fêmea':'Macho'}${r.pesoCria?', '+r.pesoCria+' kg':''})`;
+    return `<tr><td><span class="brinco-code">${esc(femea?femea.brinco:'—')}</span></td><td>${r.dataParto}</td><td>${cria}</td><td>${esc(r.obsParto||'—')}</td></tr>`;
+  }).join('');
+}
+function updateReproducaoBadge(){
+  const badge=document.getElementById('badgeReproducao');if(!badge)return;
+  const list=DATA.reproducoes.filter(r=>!r.dataParto).map(computeReproducaoStatus);
+  const alertCount=list.filter(s=>['aguardando_diagnostico','parto_proximo','parto_atrasado'].includes(s.key)).length;
+  badge.style.display=alertCount>0?'inline-block':'none';badge.textContent=alertCount;
+}
+function renderReproducaoKpis(){
+  const emAberto=new Set(DATA.reproducoes.filter(r=>!r.dataParto&&r.diagnostico!=='vazia').map(r=>r.femeaId));
+  const aptas=DATA.animais.filter(a=>a.status==='ativo'&&a.sexo==='F'&&(a.categoria==='vaca'||a.categoria==='novilha')&&!emAberto.has(a.id)).length;
+  const abertos=DATA.reproducoes.filter(r=>!r.dataParto).map(computeReproducaoStatus);
+  const prenhas=abertos.filter(s=>['prenha_confirmada','parto_proximo','parto_atrasado'].includes(s.key)).length;
+  const diagPendente=abertos.filter(s=>s.key==='aguardando_diagnostico').length;
+  const partosPrevistos=abertos.filter(s=>['parto_proximo','parto_atrasado'].includes(s.key)).length;
+  document.getElementById('reproducaoKpis').innerHTML=[
+    kpiCard('ti-heartbeat','#F59E0B',aptas,'Fêmeas Aptas'),
+    kpiCard('ti-circle-check','#10B981',prenhas,'Prenhas Confirmadas'),
+    kpiCard('ti-stethoscope','#3B82F6',diagPendente,'Diagnósticos Pendentes'),
+    kpiCard('ti-baby-carriage','#8B5CF6',partosPrevistos,'Partos Previstos (30d)')
+  ].join('');
+}
+function renderReproducaoAll(){
+  populateFemeaSelect();
+  renderReproducao(currentReproducaoFilter);
+  renderPartos();
+  renderReproducaoKpis();
+  updateReproducaoBadge();
+}
+
+// ========== SANIDADE ==========
+let currentAgendaFilter='pendentes';
+function addDays(dateStr,days){const d=new Date(dateStr+'T00:00:00');d.setDate(d.getDate()+Number(days));return d.toISOString().split('T')[0];}
+function renderProtocolos(){
+  const tb=document.getElementById('tbProtocolos');if(!tb)return;
+  if(!DATA.protocolos.length){tb.innerHTML='<tr><td colspan="6"><div class="empty-state"><i class="ti ti-vaccine"></i><p>Nenhum protocolo cadastrado</p><button class="btn btn-primary btn-sm" onclick="clearProtocoloForm();openModal(\'modalProtocolo\')"><i class="ti ti-plus"></i> Novo Protocolo</button></div></td></tr>';return;}
+  const tipoLabels={vacina:'Vacina',vermifugo:'Vermífugo',antibiotico:'Antibiótico',suplemento:'Suplemento/Mineral',outro:'Outro'};
+  tb.innerHTML=DATA.protocolos.map(p=>`<tr><td><strong>${esc(p.nome)}</strong></td><td>${tipoLabels[p.tipo]||esc(p.tipo)}</td><td>${p.intervaloDias?p.intervaloDias+' dias':'Dose única'}</td><td>${p.carenciaLeiteDias?p.carenciaLeiteDias+' dias':'—'}</td><td>${p.carenciaCarneDias?p.carenciaCarneDias+' dias':'—'}</td><td><button class="btn-icon" onclick="editProtocolo('${p.id}')"><i class="ti ti-edit"></i></button> <button class="btn-icon" onclick="excluirProtocolo('${p.id}')"><i class="ti ti-trash"></i></button></td></tr>`).join('');
+}
+async function salvarProtocolo(){
+  const id=document.getElementById('protocoloId').value;
+  const nomeEl=document.getElementById('protocoloNome');const nome=nomeEl.value.trim();
+  if(!nome){showFieldError(nomeEl,'Informe o nome do protocolo');nomeEl.focus();return;}
+  const protocolo={id:id||genId(),nome,tipo:document.getElementById('protocoloTipo').value,
+    intervaloDias:parseInt(document.getElementById('protocoloIntervalo').value)||0,
+    carenciaLeiteDias:parseInt(document.getElementById('protocoloCarenciaLeite').value)||0,
+    carenciaCarneDias:parseInt(document.getElementById('protocoloCarenciaCarne').value)||0,
+    obs:document.getElementById('protocoloObs').value.trim()};
+  if(id){const idx=DATA.protocolos.findIndex(p=>p.id===id);DATA.protocolos[idx]=protocolo;}else DATA.protocolos.push(protocolo);
+  await saveCollection('protocolos');logActivity(`Protocolo "${esc(nome)}" ${id?'atualizado':'cadastrado'}`);
+  closeModal('modalProtocolo');clearProtocoloForm();renderSanidade();showToast(`Protocolo ${id?'atualizado':'cadastrado'}!`);
+}
+function editProtocolo(id){
+  const p=DATA.protocolos.find(x=>x.id===id);if(!p)return;
+  document.getElementById('protocoloId').value=p.id;document.getElementById('protocoloNome').value=p.nome;document.getElementById('protocoloTipo').value=p.tipo;
+  document.getElementById('protocoloIntervalo').value=p.intervaloDias||'';document.getElementById('protocoloCarenciaLeite').value=p.carenciaLeiteDias||'';document.getElementById('protocoloCarenciaCarne').value=p.carenciaCarneDias||'';
+  document.getElementById('protocoloObs').value=p.obs||'';
+  document.getElementById('modalProtocoloTitle').textContent='Editar Protocolo';openModal('modalProtocolo');
+}
+async function excluirProtocolo(id){
+  const p=DATA.protocolos.find(x=>x.id===id);if(!p)return;
+  const vinculados=DATA.manejos.filter(m=>m.protocoloId===id).length;
+  let msg=`Excluir o protocolo "${esc(p.nome)}"?`;
+  if(vinculados)msg+=`\n\nATENÇÃO: existem ${vinculados} registro(s) de manejo vinculados a este protocolo — o histórico será mantido, mas ele deixará de aparecer na agenda.`;
+  if(!confirm(msg))return;
+  DATA.protocolos=DATA.protocolos.filter(x=>x.id!==id);
+  await saveCollection('protocolos');logActivity(`Protocolo "${esc(p.nome)}" excluído`);renderSanidade();showToast('Protocolo excluído','ti-trash');
+}
+function clearProtocoloForm(){clearAllFieldErrors();['protocoloId','protocoloNome','protocoloIntervalo','protocoloCarenciaLeite','protocoloCarenciaCarne','protocoloObs'].forEach(id=>document.getElementById(id).value='');document.getElementById('protocoloTipo').value='vacina';document.getElementById('modalProtocoloTitle').textContent='Novo Protocolo Sanitário';}
+
+function computeAgendaSanidade(){
+  const hoje=new Date().toISOString().split('T')[0];
+  const ativos=DATA.animais.filter(a=>a.status==='ativo');
+  const rows=[];
+  DATA.protocolos.forEach(p=>{
+    ativos.forEach(a=>{
+      const aplicacoes=DATA.manejos.filter(m=>m.tipo==='vacina'&&m.animalId===a.id&&m.protocoloId===p.id).sort((x,y)=>x.data<y.data?1:-1);
+      const ultima=aplicacoes[0];
+      if(!ultima){rows.push({animal:a,protocolo:p,ultimaData:null,proximaData:hoje,status:'pendente'});return;}
+      if(!p.intervaloDias)return; // dose única já aplicada — concluído, não repete na agenda
+      const proxima=addDays(ultima.data,p.intervaloDias);
+      let status='em_dia';
+      if(proxima<=hoje)status='atrasado';
+      else if((new Date(proxima)-new Date(hoje))/864e5<=15)status='proximo';
+      rows.push({animal:a,protocolo:p,ultimaData:ultima.data,proximaData:proxima,status});
+    });
+  });
+  return rows;
+}
+function renderAgendaVacinacao(filter=currentAgendaFilter){
+  currentAgendaFilter=filter;
+  let rows=computeAgendaSanidade();
+  if(filter==='pendentes')rows=rows.filter(r=>r.status!=='em_dia');
+  rows.sort((a,b)=>(a.proximaData||'').localeCompare(b.proximaData||''));
+  const tb=document.getElementById('tbAgendaSanidade');if(!tb)return;
+  if(!rows.length){tb.innerHTML='<tr><td colspan="6"><div class="empty-state"><i class="ti ti-calendar-check"></i><p>Nenhum item na agenda</p></div></td></tr>';return;}
+  const statusLabels={pendente:'Nunca aplicado',atrasado:'Atrasado',proximo:'Próximo',em_dia:'Em dia'};
+  const statusClass={pendente:'pendente',atrasado:'vencido',proximo:'pendente',em_dia:'ativo'};
+  tb.innerHTML=rows.map(r=>`<tr><td><span class="brinco-code">${esc(r.animal.brinco)}</span></td><td>${esc(r.protocolo.nome)}</td><td>${r.ultimaData||'—'}</td><td>${r.proximaData||'—'}</td><td><span class="status-badge status-${statusClass[r.status]}">${statusLabels[r.status]}</span></td><td><button class="btn btn-sm btn-primary" onclick="aplicarProtocoloRapido('${r.animal.id}','${r.protocolo.id}')"><i class="ti ti-syringe"></i> Aplicar</button></td></tr>`).join('');
+}
+function filterAgendaSanidade(el,f){document.querySelectorAll('#page-sanidade .filter-bar .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderAgendaVacinacao(f);}
+async function aplicarProtocoloRapido(animalId,protocoloId){
+  const a=DATA.animais.find(x=>x.id===animalId);const p=DATA.protocolos.find(x=>x.id===protocoloId);if(!a||!p)return;
+  if(!confirm(`Registrar aplicação de "${p.nome}" em ${a.brinco} hoje?`))return;
+  const registro={animalId,tipo:'vacina',protocoloId,data:new Date().toISOString().split('T')[0],obs:'Aplicação via Agenda de Vacinação',registradoPor:currentUserData?.nome||currentUser.email,criadoEm:new Date().toISOString()};
+  await db.collection('fazendas').doc(fazendaId).collection('manejos').add(registro);
+  logActivity(`Protocolo "${esc(p.nome)}" aplicado em ${esc(a.brinco)}`);showToast('Aplicação registrada!');renderSanidade();
+}
+function computeCarenciaAtivos(){
+  const hoje=new Date().toISOString().split('T')[0];const rows=[];
+  DATA.manejos.filter(m=>m.tipo==='vacina'&&m.protocoloId).forEach(m=>{
+    const p=DATA.protocolos.find(x=>x.id===m.protocoloId);if(!p||(!p.carenciaLeiteDias&&!p.carenciaCarneDias))return;
+    const carenciaLeiteAte=p.carenciaLeiteDias?addDays(m.data,p.carenciaLeiteDias):null;
+    const carenciaCarneAte=p.carenciaCarneDias?addDays(m.data,p.carenciaCarneDias):null;
+    if(!((carenciaLeiteAte&&carenciaLeiteAte>=hoje)||(carenciaCarneAte&&carenciaCarneAte>=hoje)))return;
+    const a=DATA.animais.find(x=>x.id===m.animalId);if(!a)return;
+    rows.push({animal:a,protocolo:p,aplicadoEm:m.data,carenciaLeiteAte,carenciaCarneAte});
+  });
+  return rows;
+}
+function renderCarencia(){
+  const rows=computeCarenciaAtivos();
+  const tb=document.getElementById('tbCarencia');if(!tb)return;
+  if(!rows.length){tb.innerHTML='<tr><td colspan="5"><div class="empty-state"><i class="ti ti-hourglass-empty"></i><p>Nenhum animal em carência no momento</p></div></td></tr>';return;}
+  tb.innerHTML=rows.map(r=>`<tr><td><span class="brinco-code">${esc(r.animal.brinco)}</span></td><td>${esc(r.protocolo.nome)}</td><td>${r.aplicadoEm}</td><td>${r.carenciaLeiteAte||'—'}</td><td>${r.carenciaCarneAte||'—'}</td></tr>`).join('');
+}
+function renderMortalidade(){
+  const list=DATA.animais.filter(a=>a.status==='morto');
+  const tb=document.getElementById('tbMortalidade');if(!tb)return;
+  if(!list.length){tb.innerHTML='<tr><td colspan="4"><div class="empty-state"><i class="ti ti-mood-smile"></i><p>Nenhum registro de óbito</p></div></td></tr>';return;}
+  tb.innerHTML=list.map(a=>`<tr><td><span class="brinco-code">${esc(a.brinco)}</span>${a.nome?' '+esc(a.nome):''}</td><td>${a.dataObito||'—'}</td><td>${esc(a.causaMorte||'—')}</td><td><button class="btn-icon" onclick="editAnimal('${a.id}')" title="Editar"><i class="ti ti-edit"></i></button></td></tr>`).join('');
+}
+function updateSanidadeBadge(){
+  const badge=document.getElementById('badgeSanidade');if(!badge)return;
+  const atrasados=computeAgendaSanidade().filter(r=>r.status==='atrasado').length;
+  const carenciaAtivos=computeCarenciaAtivos().length;
+  const alertCount=atrasados+carenciaAtivos;
+  badge.style.display=alertCount>0?'inline-block':'none';badge.textContent=alertCount;
+}
+function renderSanidade(){
+  populateProtocoloSelect();
+  renderProtocolos();
+  renderAgendaVacinacao(currentAgendaFilter);
+  renderCarencia();
+  renderMortalidade();
+  const agenda=computeAgendaSanidade();
+  const atrasados=agenda.filter(r=>r.status==='atrasado').length;
+  const proximos=agenda.filter(r=>r.status==='proximo').length;
+  const carenciaAtivos=computeCarenciaAtivos().length;
+  const mortos=DATA.animais.filter(a=>a.status==='morto').length;
+  document.getElementById('sanidadeKpis').innerHTML=[
+    kpiCard('ti-alert-triangle','#EF4444',atrasados,'Vacinações Atrasadas'),
+    kpiCard('ti-calendar-time','#F59E0B',proximos,'Próximas (15 dias)'),
+    kpiCard('ti-hourglass','#3B82F6',carenciaAtivos,'Em Carência'),
+    kpiCard('ti-skull','#6B7280',mortos,'Óbitos Registrados')
+  ].join('');
+  updateSanidadeBadge();
+}
+
+// ========== NUTRIÇÃO ==========
+const CATEGORIA_LABELS={bezerro:'Bezerro(a)',novilha:'Novilha',garrote:'Garrote',vaca:'Vaca',touro:'Touro',boi:'Boi'};
+function renderDietas(){
+  const tb=document.getElementById('tbDietas');if(!tb)return;
+  if(!DATA.dietas.length){tb.innerHTML='<tr><td colspan="6"><div class="empty-state"><i class="ti ti-apple"></i><p>Nenhum plano nutricional cadastrado</p><button class="btn btn-primary btn-sm" onclick="clearDietaForm();openModal(\'modalDieta\')"><i class="ti ti-plus"></i> Novo Plano</button></div></td></tr>';return;}
+  const tipoLabels={pasto:'Pasto',concentrado:'Concentrado',silagem:'Silagem',suplemento:'Suplemento/Mineral',misto:'Misto'};
+  tb.innerHTML=DATA.dietas.map(d=>`<tr><td><strong>${esc(d.nome)}</strong></td><td>${d.categoria==='todos'?'Todas':(CATEGORIA_LABELS[d.categoria]||esc(d.categoria))}</td><td>${tipoLabels[d.tipo]||esc(d.tipo)}</td><td>${d.consumoMS?d.consumoMS+' kg':'—'}</td><td>${d.custo?'R$ '+d.custo.toFixed(2):'—'}</td><td><button class="btn-icon" onclick="editDieta('${d.id}')"><i class="ti ti-edit"></i></button> <button class="btn-icon" onclick="excluirDieta('${d.id}')"><i class="ti ti-trash"></i></button></td></tr>`).join('');
+}
+async function salvarDieta(){
+  const id=document.getElementById('dietaId').value;
+  const nomeEl=document.getElementById('dietaNome');const nome=nomeEl.value.trim();
+  if(!nome){showFieldError(nomeEl,'Informe o nome do plano');nomeEl.focus();return;}
+  const dieta={id:id||genId(),nome,categoria:document.getElementById('dietaCategoria').value,tipo:document.getElementById('dietaTipo').value,
+    consumoMS:parseFloat(document.getElementById('dietaConsumoMS').value)||0,custo:parseFloat(document.getElementById('dietaCusto').value)||0,
+    obs:document.getElementById('dietaObs').value.trim()};
+  if(id){const idx=DATA.dietas.findIndex(d=>d.id===id);DATA.dietas[idx]=dieta;}else DATA.dietas.push(dieta);
+  await saveCollection('dietas');logActivity(`Plano nutricional "${esc(nome)}" ${id?'atualizado':'cadastrado'}`);
+  closeModal('modalDieta');clearDietaForm();renderNutricao();showToast(`Plano ${id?'atualizado':'cadastrado'}!`);
+}
+function editDieta(id){
+  const d=DATA.dietas.find(x=>x.id===id);if(!d)return;
+  document.getElementById('dietaId').value=d.id;document.getElementById('dietaNome').value=d.nome;document.getElementById('dietaCategoria').value=d.categoria;
+  document.getElementById('dietaTipo').value=d.tipo;document.getElementById('dietaConsumoMS').value=d.consumoMS||'';document.getElementById('dietaCusto').value=d.custo||'';
+  document.getElementById('dietaObs').value=d.obs||'';document.getElementById('modalDietaTitle').textContent='Editar Plano Nutricional';openModal('modalDieta');
+}
+async function excluirDieta(id){
+  const d=DATA.dietas.find(x=>x.id===id);if(!d)return;
+  if(!confirm(`Excluir o plano "${esc(d.nome)}"?`))return;
+  DATA.dietas=DATA.dietas.filter(x=>x.id!==id);
+  await saveCollection('dietas');logActivity(`Plano nutricional "${esc(d.nome)}" excluído`);renderNutricao();showToast('Plano excluído','ti-trash');
+}
+function clearDietaForm(){clearAllFieldErrors();['dietaId','dietaNome','dietaConsumoMS','dietaCusto','dietaObs'].forEach(id=>document.getElementById(id).value='');document.getElementById('dietaCategoria').value='todos';document.getElementById('dietaTipo').value='pasto';document.getElementById('modalDietaTitle').textContent='Novo Plano Nutricional';}
+function dietaParaCategoria(categoria){
+  return DATA.dietas.find(d=>d.categoria===categoria)||DATA.dietas.find(d=>d.categoria==='todos')||null;
+}
+function renderCustoCategoria(){
+  const ativos=DATA.animais.filter(a=>a.status==='ativo');
+  const cats={};ativos.forEach(a=>{cats[a.categoria]=(cats[a.categoria]||0)+1;});
+  const tb=document.getElementById('tbCustoCategoria');if(!tb)return;
+  const entries=Object.entries(cats);
+  if(!entries.length){tb.innerHTML='<tr><td colspan="5"><div class="empty-state"><i class="ti ti-report-money"></i><p>Sem animais ativos para calcular custo</p></div></td></tr>';return;}
+  tb.innerHTML=entries.map(([cat,qtd])=>{
+    const dieta=dietaParaCategoria(cat);
+    const custoCab=dieta?dieta.custo:0;
+    const custoTotal=custoCab*qtd;
+    return `<tr><td>${CATEGORIA_LABELS[cat]||cat}</td><td>${qtd}</td><td>${dieta?esc(dieta.nome):'<span style="color:var(--text-muted)">Sem plano definido</span>'}</td><td>${dieta?mFmt(custoTotal):'—'}</td><td>${dieta?mFmt(custoCab):'—'}</td></tr>`;
+  }).join('');
+}
+function computeNutricaoSemDieta(){
+  return DATA.animais.filter(a=>a.status==='ativo'&&!dietaParaCategoria(a.categoria)).length;
+}
+function updateNutricaoBadge(){
+  const badge=document.getElementById('badgeNutricao');if(!badge)return;
+  const semDieta=computeNutricaoSemDieta();
+  badge.style.display=semDieta>0?'inline-block':'none';badge.textContent=semDieta;
+}
+function renderNutricaoKpis(){
+  const ativos=DATA.animais.filter(a=>a.status==='ativo');
+  let custoTotal=0,comDieta=0,gmdRefSum=0,gmdRefCount=0;
+  ativos.forEach(a=>{
+    const dieta=dietaParaCategoria(a.categoria);
+    if(!dieta)return;
+    comDieta++;custoTotal+=dieta.custo||0;
+    if(dieta.consumoMS){
+      const h=a.historicoPeso||[];
+      if(h.length>=2){const first=h[0],last=h[h.length-1];const dias=(new Date(last.data)-new Date(first.data))/864e5;if(dias>0){const gmd=(last.peso-first.peso)/dias;if(gmd>0){gmdRefSum+=dieta.consumoMS/gmd;gmdRefCount++;}}}
+    }
+  });
+  const custoMedio=comDieta?custoTotal/comDieta:0;
+  const conversao=gmdRefCount?gmdRefSum/gmdRefCount:0;
+  document.getElementById('nutricaoKpis').innerHTML=[
+    kpiCard('ti-report-money','#F59E0B',mFmt(custoTotal),'Custo Diário Total'),
+    kpiCard('ti-coin','#3B82F6',mFmt(custoMedio),'Custo Diário Médio/Cabeça'),
+    kpiCard('ti-alert-triangle','#EF4444',computeNutricaoSemDieta(),'Animais sem Dieta'),
+    kpiCard('ti-chart-line','#10B981',conversao?conversao.toFixed(1)+' kg MS/kg':'—','Conversão Alimentar Estimada')
+  ].join('');
+  updateNutricaoBadge();
+}
+function renderNutricao(){renderDietas();renderCustoCategoria();renderNutricaoKpis();}
+
+// ========== PASTAGENS ==========
+function normalizeLote(s){return (s||'').trim().toLowerCase();}
+function cabecasNoPiquete(piqueteNome){
+  const alvo=normalizeLote(piqueteNome);
+  return DATA.animais.filter(a=>a.status==='ativo'&&normalizeLote(a.lote)===alvo).length;
+}
+function renderPiquetes(){
+  const tb=document.getElementById('tbPiquetes');if(!tb)return;
+  if(!DATA.piquetes.length){tb.innerHTML='<tr><td colspan="7"><div class="empty-state"><i class="ti ti-map-2"></i><p>Nenhum piquete cadastrado</p><button class="btn btn-primary btn-sm" onclick="clearPiqueteForm();openModal(\'modalPiquete\')"><i class="ti ti-plus"></i> Novo Piquete</button></div></td></tr>';return;}
+  tb.innerHTML=DATA.piquetes.map(p=>{
+    const cabecas=cabecasNoPiquete(p.nome);
+    const lotacao=p.areaHectares?(cabecas/p.areaHectares).toFixed(2):'—';
+    return `<tr><td><strong>${esc(p.nome)}</strong></td><td>${p.areaHectares||'—'}</td><td>${esc(p.forragem||'—')}</td><td>${cabecas}</td><td>${lotacao}</td><td><span class="status-badge status-${p.status==='ocupado'?'ativo':'pendente'}">${p.status==='ocupado'?'Ocupado':'Em descanso'}</span></td><td><button class="btn-icon" title="Alternar status" onclick="alternarStatusPiquete('${p.id}')"><i class="ti ti-refresh"></i></button> <button class="btn-icon" onclick="editPiquete('${p.id}')"><i class="ti ti-edit"></i></button> <button class="btn-icon" onclick="excluirPiquete('${p.id}')"><i class="ti ti-trash"></i></button></td></tr>`;
+  }).join('');
+}
+function registrarRotacao(piqueteNome,de,para,obs){
+  DATA.rotacoesPasto.unshift({id:genId(),piquete:piqueteNome,de,para,data:new Date().toISOString().split('T')[0],obs});
+  if(DATA.rotacoesPasto.length>100)DATA.rotacoesPasto=DATA.rotacoesPasto.slice(0,100);
+}
+async function salvarPiquete(){
+  const id=document.getElementById('piqueteId').value;
+  const nomeEl=document.getElementById('piqueteNome');const nome=nomeEl.value.trim();
+  if(!nome){showFieldError(nomeEl,'Informe o nome do piquete');nomeEl.focus();return;}
+  const dup=DATA.piquetes.find(p=>p.nome.toLowerCase()===nome.toLowerCase()&&p.id!==id);
+  if(dup){showFieldError(nomeEl,'Já existe um piquete com este nome');nomeEl.focus();return;}
+  const status=document.getElementById('piqueteStatus').value;
+  const piquete={id:id||genId(),nome,areaHectares:parseFloat(document.getElementById('piqueteArea').value)||0,
+    forragem:document.getElementById('piqueteForragem').value.trim(),status,
+    obs:document.getElementById('piqueteObs').value.trim(),dataInicioStatus:new Date().toISOString().split('T')[0]};
+  if(id){
+    const idx=DATA.piquetes.findIndex(p=>p.id===id);
+    if(DATA.piquetes[idx].status!==status)registrarRotacao(nome,DATA.piquetes[idx].status,status,'Alterado via edição');
+    else piquete.dataInicioStatus=DATA.piquetes[idx].dataInicioStatus;
+    DATA.piquetes[idx]=piquete;
+  }else{DATA.piquetes.push(piquete);registrarRotacao(nome,null,status,'Piquete cadastrado');}
+  await saveCollection('piquetes');await saveCollection('rotacoesPasto');
+  logActivity(`Piquete "${esc(nome)}" ${id?'atualizado':'cadastrado'}`);
+  closeModal('modalPiquete');clearPiqueteForm();renderPastagens();showToast(`Piquete ${id?'atualizado':'cadastrado'}!`);
+}
+function editPiquete(id){
+  const p=DATA.piquetes.find(x=>x.id===id);if(!p)return;
+  document.getElementById('piqueteId').value=p.id;document.getElementById('piqueteNome').value=p.nome;document.getElementById('piqueteArea').value=p.areaHectares||'';
+  document.getElementById('piqueteForragem').value=p.forragem||'';document.getElementById('piqueteStatus').value=p.status;document.getElementById('piqueteObs').value=p.obs||'';
+  document.getElementById('modalPiqueteTitle').textContent='Editar Piquete';openModal('modalPiquete');
+}
+async function excluirPiquete(id){
+  const p=DATA.piquetes.find(x=>x.id===id);if(!p)return;
+  if(!confirm(`Excluir o piquete "${esc(p.nome)}"?`))return;
+  DATA.piquetes=DATA.piquetes.filter(x=>x.id!==id);
+  await saveCollection('piquetes');logActivity(`Piquete "${esc(p.nome)}" excluído`);renderPastagens();showToast('Piquete excluído','ti-trash');
+}
+async function alternarStatusPiquete(id){
+  const p=DATA.piquetes.find(x=>x.id===id);if(!p)return;
+  const novoStatus=p.status==='ocupado'?'descanso':'ocupado';
+  registrarRotacao(p.nome,p.status,novoStatus,'Alternado manualmente');
+  p.status=novoStatus;p.dataInicioStatus=new Date().toISOString().split('T')[0];
+  await saveCollection('piquetes');await saveCollection('rotacoesPasto');
+  logActivity(`Piquete "${esc(p.nome)}" agora está ${novoStatus==='ocupado'?'ocupado':'em descanso'}`);
+  renderPastagens();showToast('Status atualizado!');
+}
+function renderRotacoes(){
+  const tb=document.getElementById('tbRotacoes');if(!tb)return;
+  if(!DATA.rotacoesPasto.length){tb.innerHTML='<tr><td colspan="4"><div class="empty-state"><i class="ti ti-history"></i><p>Nenhuma movimentação registrada</p></div></td></tr>';return;}
+  const statusLabel={ocupado:'Ocupado',descanso:'Em descanso'};
+  tb.innerHTML=DATA.rotacoesPasto.map(r=>`<tr><td><strong>${esc(r.piquete)}</strong></td><td>${r.de?statusLabel[r.de]+' → '+statusLabel[r.para]:statusLabel[r.para]}</td><td>${r.data}</td><td>${esc(r.obs||'—')}</td></tr>`).join('');
+}
+function clearPiqueteForm(){clearAllFieldErrors();['piqueteId','piqueteNome','piqueteArea','piqueteForragem','piqueteObs'].forEach(id=>document.getElementById(id).value='');document.getElementById('piqueteStatus').value='ocupado';document.getElementById('modalPiqueteTitle').textContent='Novo Piquete';}
+function renderPastagensKpis(){
+  const totalPiquetes=DATA.piquetes.length;
+  const areaTotal=DATA.piquetes.reduce((s,p)=>s+(p.areaHectares||0),0);
+  const emDescanso=DATA.piquetes.filter(p=>p.status==='descanso').length;
+  const cabecasTotal=DATA.piquetes.reduce((s,p)=>s+cabecasNoPiquete(p.nome),0);
+  const lotacaoMedia=areaTotal?(cabecasTotal/areaTotal):0;
+  document.getElementById('pastagensKpis').innerHTML=[
+    kpiCard('ti-map-2','#F59E0B',totalPiquetes,'Piquetes Cadastrados'),
+    kpiCard('ti-ruler-2','#3B82F6',areaTotal.toFixed(1)+' ha','Área Total'),
+    kpiCard('ti-chart-bar','#10B981',lotacaoMedia.toFixed(2),'Lotação Média (cab/ha)'),
+    kpiCard('ti-hourglass','#8B5CF6',emDescanso,'Piquetes em Descanso')
+  ].join('');
+}
+function renderPastagens(){renderPiquetes();renderRotacoes();renderPastagensKpis();}
+
+// ========== ORDENHA E LEITE ==========
+function computeProducaoPorDia(){
+  const porDia={};
+  DATA.manejos.filter(m=>m.tipo==='ordenha').forEach(m=>{porDia[m.data]=(porDia[m.data]||0)+(m.volumeLeite||0);});
+  return porDia;
+}
+function renderOrdenhaKpis(porDia){
+  const hoje=new Date().toISOString().split('T')[0];
+  const producaoHoje=porDia[hoje]||0;
+  const producaoMes=Object.entries(porDia).filter(([d])=>d.slice(0,7)===hoje.slice(0,7)).reduce((s,[,v])=>s+v,0);
+  const tresDiasAtras=addDays(hoje,-3);
+  const vacasEmLactacao=new Set(DATA.manejos.filter(m=>m.tipo==='ordenha'&&m.data>=tresDiasAtras).map(m=>m.animalId)).size;
+  const mediaPorVaca=vacasEmLactacao?producaoHoje/vacasEmLactacao:0;
+  document.getElementById('ordenhaKpis').innerHTML=[
+    kpiCard('ti-droplet','#3B82F6',producaoHoje.toFixed(1)+' L','Produção de Hoje'),
+    kpiCard('ti-chart-line','#10B981',mediaPorVaca.toFixed(1)+' L','Média por Vaca (hoje)'),
+    kpiCard('ti-calendar-month','#F59E0B',producaoMes.toFixed(0)+' L','Produção do Mês'),
+    kpiCard('icon-cow','#8B5CF6',vacasEmLactacao,'Vacas em Lactação (~3d)')
+  ].join('');
+}
+function renderChartOrdenha(porDia){
+  const hoje=new Date().toISOString().split('T')[0];
+  const labels=[];for(let i=29;i>=0;i--)labels.push(addDays(hoje,-i));
+  const data=labels.map(d=>porDia[d]||0);
+  const ctx=document.getElementById('chartOrdenha');if(!ctx)return;
+  if(window._chartOrdenha)window._chartOrdenha.destroy();
+  window._chartOrdenha=new Chart(ctx,{type:'bar',data:{labels:labels.map(d=>d.slice(5)),datasets:[{label:'Litros/dia',data,backgroundColor:'#3B82F6'}]},options:{responsive:true,plugins:{legend:{display:false}}}});
+}
+function renderRankingOrdenha(){
+  const hoje=new Date().toISOString().split('T')[0];
+  const desde=addDays(hoje,-30);
+  const porAnimal={};
+  DATA.manejos.filter(m=>m.tipo==='ordenha'&&m.data>=desde).forEach(m=>{
+    if(!porAnimal[m.animalId])porAnimal[m.animalId]={total:0,count:0};
+    porAnimal[m.animalId].total+=m.volumeLeite||0;porAnimal[m.animalId].count++;
+  });
+  const rows=Object.entries(porAnimal).map(([animalId,v])=>({animal:DATA.animais.find(a=>a.id===animalId),...v})).filter(r=>r.animal).sort((a,b)=>b.total-a.total);
+  const tb=document.getElementById('tbRankingOrdenha');if(!tb)return;
+  if(!rows.length){tb.innerHTML='<tr><td colspan="4"><div class="empty-state"><i class="ti ti-droplet-off"></i><p>Nenhum registro de ordenha nos últimos 30 dias</p></div></td></tr>';return;}
+  tb.innerHTML=rows.map(r=>`<tr><td><span class="brinco-code">${esc(r.animal.brinco)}</span>${r.animal.nome?' '+esc(r.animal.nome):''}</td><td>${r.total.toFixed(1)}</td><td>${r.count}</td><td>${(r.total/r.count).toFixed(1)}</td></tr>`).join('');
+}
+function renderUltimasOrdenhas(){
+  const list=DATA.manejos.filter(m=>m.tipo==='ordenha').sort((a,b)=>b.data.localeCompare(a.data)).slice(0,20);
+  const tb=document.getElementById('tbUltimasOrdenhas');if(!tb)return;
+  if(!list.length){tb.innerHTML='<tr><td colspan="4"><div class="empty-state"><i class="ti ti-droplet-off"></i><p>Nenhum registro de ordenha</p></div></td></tr>';return;}
+  tb.innerHTML=list.map(m=>{const a=DATA.animais.find(x=>x.id===m.animalId);return`<tr><td style="white-space:nowrap;font-size:12px">${m.data}</td><td><span class="brinco-code">${esc(a?a.brinco:'—')}</span></td><td>${(m.volumeLeite||0).toFixed(1)} L</td><td>${esc(m.obs||'—')}</td></tr>`;}).join('');
+}
+function renderOrdenha(){
+  const porDia=computeProducaoPorDia();
+  renderOrdenhaKpis(porDia);renderChartOrdenha(porDia);renderRankingOrdenha();renderUltimasOrdenhas();
+}
+
+// ========== TALHÕES ==========
+function safraAtivaDoTalhao(talhaoId){
+  return DATA.safras.filter(s=>s.talhaoId===talhaoId&&s.status==='plantada').sort((a,b)=>(b.dataPlantio||'').localeCompare(a.dataPlantio||''))[0]||null;
+}
+function renderTalhoes(){
+  const tb=document.getElementById('tbTalhoes');if(!tb)return;
+  if(!DATA.talhoes.length){tb.innerHTML='<tr><td colspan="6"><div class="empty-state"><i class="ti ti-map"></i><p>Nenhum talhão cadastrado</p><button class="btn btn-primary btn-sm" onclick="clearTalhaoForm();openModal(\'modalTalhao\')"><i class="ti ti-plus"></i> Novo Talhão</button></div></td></tr>';return;}
+  tb.innerHTML=DATA.talhoes.map(t=>{
+    const safra=safraAtivaDoTalhao(t.id);
+    return `<tr><td><strong>${esc(t.nome)}</strong></td><td>${t.areaHectares||'—'}</td><td>${esc(t.tipoSolo||'—')}</td><td>${safra?esc(safra.cultura):'—'}</td><td><span class="status-badge status-${safra?'ativo':'pendente'}">${safra?'Em uso':'Disponível'}</span></td><td><button class="btn-icon" onclick="editTalhao('${t.id}')"><i class="ti ti-edit"></i></button> <button class="btn-icon" onclick="excluirTalhao('${t.id}')"><i class="ti ti-trash"></i></button></td></tr>`;
+  }).join('');
+}
+async function salvarTalhao(){
+  const id=document.getElementById('talhaoId').value;
+  const nomeEl=document.getElementById('talhaoNome');const nome=nomeEl.value.trim();
+  if(!nome){showFieldError(nomeEl,'Informe o nome do talhão');nomeEl.focus();return;}
+  const dup=DATA.talhoes.find(t=>t.nome.toLowerCase()===nome.toLowerCase()&&t.id!==id);
+  if(dup){showFieldError(nomeEl,'Já existe um talhão com este nome');nomeEl.focus();return;}
+  const talhao={id:id||genId(),nome,areaHectares:parseFloat(document.getElementById('talhaoArea').value)||0,
+    tipoSolo:document.getElementById('talhaoTipoSolo').value.trim(),latitude:document.getElementById('talhaoLatitude').value.trim(),
+    longitude:document.getElementById('talhaoLongitude').value.trim(),obs:document.getElementById('talhaoObs').value.trim()};
+  if(id){const idx=DATA.talhoes.findIndex(t=>t.id===id);DATA.talhoes[idx]=talhao;}else DATA.talhoes.push(talhao);
+  await saveCollection('talhoes');logActivity(`Talhão "${esc(nome)}" ${id?'atualizado':'cadastrado'}`);
+  closeModal('modalTalhao');clearTalhaoForm();renderTalhoesAll();populateTalhaoSelect();showToast(`Talhão ${id?'atualizado':'cadastrado'}!`);
+}
+function editTalhao(id){
+  const t=DATA.talhoes.find(x=>x.id===id);if(!t)return;
+  document.getElementById('talhaoId').value=t.id;document.getElementById('talhaoNome').value=t.nome;document.getElementById('talhaoArea').value=t.areaHectares||'';
+  document.getElementById('talhaoTipoSolo').value=t.tipoSolo||'';document.getElementById('talhaoLatitude').value=t.latitude||'';document.getElementById('talhaoLongitude').value=t.longitude||'';
+  document.getElementById('talhaoObs').value=t.obs||'';document.getElementById('modalTalhaoTitle').textContent='Editar Talhão';openModal('modalTalhao');
+}
+async function excluirTalhao(id){
+  const t=DATA.talhoes.find(x=>x.id===id);if(!t)return;
+  const vinculadas=DATA.safras.filter(s=>s.talhaoId===id).length;
+  let msg=`Excluir o talhão "${esc(t.nome)}"?`;
+  if(vinculadas)msg+=`\n\nATENÇÃO: existem ${vinculadas} safra(s) vinculadas a este talhão — o histórico será mantido, mas ficará órfão.`;
+  if(!confirm(msg))return;
+  DATA.talhoes=DATA.talhoes.filter(x=>x.id!==id);
+  await saveCollection('talhoes');logActivity(`Talhão "${esc(t.nome)}" excluído`);renderTalhoesAll();showToast('Talhão excluído','ti-trash');
+}
+function clearTalhaoForm(){clearAllFieldErrors();['talhaoId','talhaoNome','talhaoArea','talhaoTipoSolo','talhaoLatitude','talhaoLongitude','talhaoObs'].forEach(id=>document.getElementById(id).value='');document.getElementById('modalTalhaoTitle').textContent='Novo Talhão';}
+function populateTalhaoSelect(){
+  const sel=document.getElementById('safraTalhaoId');if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML=DATA.talhoes.length?DATA.talhoes.map(t=>`<option value="${t.id}">${esc(t.nome)}</option>`).join(''):'<option value="">Nenhum talhão cadastrado</option>';
+  if(cur)sel.value=cur;
+}
+function autoPreencherAreaSafra(){
+  const talhao=DATA.talhoes.find(t=>t.id===document.getElementById('safraTalhaoId').value);
+  const areaEl=document.getElementById('safraArea');
+  if(talhao&&!areaEl.value)areaEl.value=talhao.areaHectares||'';
+}
+function renderTalhoesKpis(){
+  const total=DATA.talhoes.length;
+  const areaTotal=DATA.talhoes.reduce((s,t)=>s+(t.areaHectares||0),0);
+  const emUso=DATA.talhoes.filter(t=>safraAtivaDoTalhao(t.id)).length;
+  document.getElementById('talhoesKpis').innerHTML=[
+    kpiCard('ti-map','#F59E0B',total,'Talhões Cadastrados'),
+    kpiCard('ti-ruler-2','#3B82F6',areaTotal.toFixed(1)+' ha','Área Total'),
+    kpiCard('ti-leaf','#10B981',emUso,'Em Uso (com safra ativa)'),
+    kpiCard('ti-map-2','#8B5CF6',total-emUso,'Disponíveis')
+  ].join('');
+}
+function renderTalhoesAll(){renderTalhoes();renderTalhoesKpis();}
+
+// ========== SAFRAS ==========
+let currentSafraFilter='todas';
+function computeSafraStatusInfo(s){
+  const hoje=new Date().toISOString().split('T')[0];
+  if(s.status==='perdida')return{key:'perdida',label:'Perdida',cls:'vencido',previsaoColheita:''};
+  if(s.status==='colhida')return{key:'colhida',label:'Colhida',cls:'ativo',previsaoColheita:''};
+  const previsao=s.cicloDiasEstimado?addDays(s.dataPlantio,s.cicloDiasEstimado):'';
+  if(previsao){
+    const dias=(new Date(previsao)-new Date(hoje))/864e5;
+    if(dias<=0)return{key:'colheita_atrasada',label:'Colheita atrasada',cls:'vencido',previsaoColheita:previsao};
+    if(dias<=30)return{key:'colheita_prevista',label:'Colheita prevista',cls:'pendente',previsaoColheita:previsao};
+  }
+  return{key:'plantada',label:'Em andamento',cls:'ativo',previsaoColheita:previsao};
+}
+function clearSafraForm(){
+  clearAllFieldErrors();
+  ['safraId','safraCultura','safraVariedade','safraCicloDias','safraArea','safraObs'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('safraDataPlantio').value=new Date().toISOString().split('T')[0];
+  populateTalhaoSelect();
+  document.getElementById('modalSafraTitle').textContent='Nova Safra';
+}
+async function salvarSafra(){
+  const id=document.getElementById('safraId').value;
+  const talhaoId=document.getElementById('safraTalhaoId').value;
+  if(!talhaoId){showToast('Selecione um talhão','ti-alert-triangle');return;}
+  const culturaEl=document.getElementById('safraCultura');const cultura=culturaEl.value.trim();
+  if(!cultura){showFieldError(culturaEl,'Informe a cultura');culturaEl.focus();return;}
+  const talhao=DATA.talhoes.find(t=>t.id===talhaoId);
+  const safra={id:id||genId(),talhaoId,cultura,variedade:document.getElementById('safraVariedade').value.trim(),
+    dataPlantio:document.getElementById('safraDataPlantio').value||new Date().toISOString().split('T')[0],
+    cicloDiasEstimado:parseInt(document.getElementById('safraCicloDias').value)||0,
+    areaPlantada:parseFloat(document.getElementById('safraArea').value)||(talhao?talhao.areaHectares:0)||0,
+    obs:document.getElementById('safraObs').value.trim()};
+  if(id){
+    const idx=DATA.safras.findIndex(s=>s.id===id);
+    safra.status=DATA.safras[idx].status;safra.dataColheitaReal=DATA.safras[idx].dataColheitaReal;safra.quantidadeColhida=DATA.safras[idx].quantidadeColhida;
+    safra.unidadeColheita=DATA.safras[idx].unidadeColheita;safra.motivoPerda=DATA.safras[idx].motivoPerda;safra.dataPerda=DATA.safras[idx].dataPerda;
+    DATA.safras[idx]=safra;
+  }else{safra.status='plantada';DATA.safras.push(safra);}
+  await saveCollection('safras');logActivity(`Safra de ${esc(cultura)} ${id?'atualizada':'cadastrada'}`);
+  closeModal('modalSafra');clearSafraForm();renderSafrasAll();renderTalhoesAll();showToast(`Safra ${id?'atualizada':'cadastrada'}!`);
+}
+function editSafra(id){
+  const s=DATA.safras.find(x=>x.id===id);if(!s)return;
+  populateTalhaoSelect();
+  document.getElementById('safraId').value=s.id;document.getElementById('safraTalhaoId').value=s.talhaoId;
+  document.getElementById('safraCultura').value=s.cultura;document.getElementById('safraVariedade').value=s.variedade||'';
+  document.getElementById('safraDataPlantio').value=s.dataPlantio||'';document.getElementById('safraCicloDias').value=s.cicloDiasEstimado||'';
+  document.getElementById('safraArea').value=s.areaPlantada||'';document.getElementById('safraObs').value=s.obs||'';
+  document.getElementById('modalSafraTitle').textContent='Editar Safra';openModal('modalSafra');
+}
+async function excluirSafra(id){
+  const s=DATA.safras.find(x=>x.id===id);if(!s)return;
+  const vinculadas=DATA.aplicacoesInsumo.filter(a=>a.safraId===id).length;
+  let msg=`Excluir a safra de ${esc(s.cultura)}?`;
+  if(vinculadas)msg+=`\n\nATENÇÃO: existem ${vinculadas} aplicação(ões) de insumo vinculadas a esta safra — o histórico será mantido, mas ficará órfão.`;
+  if(!confirm(msg))return;
+  DATA.safras=DATA.safras.filter(x=>x.id!==id);
+  await saveCollection('safras');logActivity(`Safra de ${esc(s.cultura)} excluída`);renderSafrasAll();renderTalhoesAll();showToast('Safra excluída','ti-trash');
+}
+function openColheita(id){
+  const s=DATA.safras.find(x=>x.id===id);if(!s)return;
+  const talhao=DATA.talhoes.find(t=>t.id===s.talhaoId);
+  document.getElementById('colheitaSafraId').value=s.id;
+  document.getElementById('colheitaResumo').innerHTML=`<strong>${esc(s.cultura)}</strong>${s.variedade?' — '+esc(s.variedade):''} · Talhão: ${esc(talhao?talhao.nome:'—')} · Plantio: ${s.dataPlantio||'—'}`;
+  document.getElementById('colheitaData').value=new Date().toISOString().split('T')[0];
+  document.getElementById('colheitaQuantidade').value='';document.getElementById('colheitaUnidade').value='sacas';document.getElementById('colheitaObs').value='';
+  openModal('modalColheita');
+}
+async function salvarColheita(){
+  const id=document.getElementById('colheitaSafraId').value;
+  const s=DATA.safras.find(x=>x.id===id);if(!s)return;
+  s.status='colhida';s.dataColheitaReal=document.getElementById('colheitaData').value||new Date().toISOString().split('T')[0];
+  s.quantidadeColhida=parseFloat(document.getElementById('colheitaQuantidade').value)||0;
+  s.unidadeColheita=document.getElementById('colheitaUnidade').value;s.obsColheita=document.getElementById('colheitaObs').value.trim();
+  await saveCollection('safras');logActivity(`Colheita registrada para safra de ${esc(s.cultura)}`);
+  closeModal('modalColheita');renderSafrasAll();renderTalhoesAll();showToast('Colheita registrada!');
+}
+function openPerda(id){
+  const s=DATA.safras.find(x=>x.id===id);if(!s)return;
+  const talhao=DATA.talhoes.find(t=>t.id===s.talhaoId);
+  document.getElementById('perdaSafraId').value=s.id;
+  document.getElementById('perdaResumo').innerHTML=`<strong>${esc(s.cultura)}</strong>${s.variedade?' — '+esc(s.variedade):''} · Talhão: ${esc(talhao?talhao.nome:'—')}`;
+  document.getElementById('perdaData').value=new Date().toISOString().split('T')[0];
+  document.getElementById('perdaMotivo').value='';document.getElementById('perdaObs').value='';
+  openModal('modalPerda');
+}
+async function salvarPerda(){
+  const id=document.getElementById('perdaSafraId').value;
+  const s=DATA.safras.find(x=>x.id===id);if(!s)return;
+  s.status='perdida';s.dataPerda=document.getElementById('perdaData').value||new Date().toISOString().split('T')[0];
+  s.motivoPerda=document.getElementById('perdaMotivo').value.trim();s.obsPerda=document.getElementById('perdaObs').value.trim();
+  await saveCollection('safras');logActivity(`Perda registrada para safra de ${esc(s.cultura)}`);
+  closeModal('modalPerda');renderSafrasAll();renderTalhoesAll();showToast('Perda registrada','ti-alert-triangle');
+}
+function renderSafras(filter=currentSafraFilter){
+  currentSafraFilter=filter;
+  let list=DATA.safras.map(s=>({s,info:computeSafraStatusInfo(s)}));
+  if(filter==='plantada')list=list.filter(x=>['plantada','colheita_prevista','colheita_atrasada'].includes(x.info.key));
+  else if(filter==='colheita_prevista')list=list.filter(x=>['colheita_prevista','colheita_atrasada'].includes(x.info.key));
+  else if(filter==='colhida')list=list.filter(x=>x.info.key==='colhida');
+  list.sort((a,b)=>(b.s.dataPlantio||'').localeCompare(a.s.dataPlantio||''));
+  const tb=document.getElementById('tbSafras');if(!tb)return;
+  if(!list.length){tb.innerHTML='<tr><td colspan="6"><div class="empty-state"><i class="ti ti-leaf"></i><p>Nenhuma safra encontrada</p></div></td></tr>';return;}
+  tb.innerHTML=list.map(({s,info})=>{
+    const talhao=DATA.talhoes.find(t=>t.id===s.talhaoId);
+    const acoes=(info.key==='colhida'||info.key==='perdida')
+      ?`<button class="btn-icon" onclick="editSafra('${s.id}')"><i class="ti ti-edit"></i></button> <button class="btn-icon" onclick="excluirSafra('${s.id}')"><i class="ti ti-trash"></i></button>`
+      :`<button class="btn btn-sm btn-primary" onclick="openColheita('${s.id}')"><i class="ti ti-clipboard-check"></i> Colheita</button> <button class="btn-icon" title="Registrar perda" onclick="openPerda('${s.id}')"><i class="ti ti-alert-triangle"></i></button> <button class="btn-icon" onclick="editSafra('${s.id}')"><i class="ti ti-edit"></i></button> <button class="btn-icon" onclick="excluirSafra('${s.id}')"><i class="ti ti-trash"></i></button>`;
+    return `<tr><td>${esc(talhao?talhao.nome:'—')}</td><td>${esc(s.cultura)}${s.variedade?' <span style="color:var(--text-muted)">('+esc(s.variedade)+')</span>':''}</td><td>${s.dataPlantio||'—'}</td><td>${info.previsaoColheita||'—'}</td><td><span class="status-badge status-${info.cls}">${info.label}</span></td><td>${acoes}</td></tr>`;
+  }).join('');
+}
+function filterSafras(el,f){document.querySelectorAll('#page-safras .filter-bar .filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderSafras(f);}
+function computeCustoInsumoPorSafra(safraId){
+  return DATA.aplicacoesInsumo.filter(a=>a.safraId===safraId).reduce((s,a)=>s+(a.custoTotal||0),0);
+}
+function renderCustoSafra(){
+  const tb=document.getElementById('tbCustoSafra');if(!tb)return;
+  if(!DATA.safras.length){tb.innerHTML='<tr><td colspan="4"><div class="empty-state"><i class="ti ti-report-money"></i><p>Nenhuma safra cadastrada</p></div></td></tr>';return;}
+  tb.innerHTML=DATA.safras.map(s=>{
+    const custo=computeCustoInsumoPorSafra(s.id);
+    const custoHa=s.areaPlantada?custo/s.areaPlantada:0;
+    return `<tr><td>${esc(s.cultura)}${s.variedade?' ('+esc(s.variedade)+')':''}</td><td>${s.areaPlantada||'—'}</td><td>${mFmt(custo)}</td><td>${s.areaPlantada?mFmt(custoHa):'—'}</td></tr>`;
+  }).join('');
+}
+function updateSafrasBadge(){
+  const badge=document.getElementById('badgeSafras');if(!badge)return;
+  const count=DATA.safras.map(computeSafraStatusInfo).filter(i=>i.key==='colheita_atrasada'||i.key==='colheita_prevista').length;
+  badge.style.display=count>0?'inline-block':'none';badge.textContent=count;
+}
+function renderSafrasKpis(){
+  const infos=DATA.safras.map(s=>({s,info:computeSafraStatusInfo(s)}));
+  const emAndamento=infos.filter(x=>['plantada','colheita_prevista','colheita_atrasada'].includes(x.info.key)).length;
+  const areaPlantada=infos.filter(x=>x.info.key!=='perdida').reduce((sum,x)=>sum+(x.s.areaPlantada||0),0);
+  const colheitaPrevista=infos.filter(x=>['colheita_prevista','colheita_atrasada'].includes(x.info.key)).length;
+  let produtividadeSum=0,produtividadeCount=0;
+  infos.filter(x=>x.info.key==='colhida').forEach(({s})=>{if(s.areaPlantada&&s.quantidadeColhida){produtividadeSum+=s.quantidadeColhida/s.areaPlantada;produtividadeCount++;}});
+  const produtividadeMedia=produtividadeCount?produtividadeSum/produtividadeCount:0;
+  document.getElementById('safrasKpis').innerHTML=[
+    kpiCard('ti-leaf','#10B981',emAndamento,'Safras em Andamento'),
+    kpiCard('ti-ruler-2','#3B82F6',areaPlantada.toFixed(1)+' ha','Área Plantada'),
+    kpiCard('ti-calendar-time','#F59E0B',colheitaPrevista,'Colheita Prevista (30d)'),
+    kpiCard('ti-chart-bar','#8B5CF6',produtividadeMedia?produtividadeMedia.toFixed(1)+'/ha':'—','Produtividade Média')
+  ].join('');
+  updateSafrasBadge();
+}
+function renderSafrasAll(){populateTalhaoSelect();renderSafras(currentSafraFilter);renderCustoSafra();renderSafrasKpis();}
+
+// ========== INSUMOS ==========
+function statusEstoque(i){
+  if(!i.estoqueMinimo)return null;
+  return i.estoqueAtual<=i.estoqueMinimo?'baixo':'ok';
+}
+function renderInsumos(){
+  const tb=document.getElementById('tbInsumos');if(!tb)return;
+  if(!DATA.insumos.length){tb.innerHTML='<tr><td colspan="6"><div class="empty-state"><i class="ti ti-package"></i><p>Nenhum insumo cadastrado</p><button class="btn btn-primary btn-sm" onclick="clearInsumoForm();openModal(\'modalInsumo\')"><i class="ti ti-plus"></i> Novo Insumo</button></div></td></tr>';return;}
+  const tipoLabels={semente:'Semente',fertilizante:'Fertilizante',defensivo:'Defensivo',corretivo:'Corretivo de Solo',outro:'Outro'};
+  const unidadeLabels={kg:'Kg',l:'Litro',saco:'Saco',unidade:'Unidade'};
+  tb.innerHTML=DATA.insumos.map(i=>{
+    const est=statusEstoque(i);
+    const estoqueHtml=est==='baixo'?`<span class="status-badge status-vencido">${i.estoqueAtual} ${unidadeLabels[i.unidade]||''}</span>`:`${i.estoqueAtual} ${unidadeLabels[i.unidade]||''}`;
+    return `<tr><td><strong>${esc(i.nome)}</strong></td><td>${tipoLabels[i.tipo]||esc(i.tipo)}</td><td>${unidadeLabels[i.unidade]||esc(i.unidade)}</td><td>${estoqueHtml}</td><td>${i.custo?'R$ '+i.custo.toFixed(2):'—'}</td><td><button class="btn-icon" onclick="editInsumo('${i.id}')"><i class="ti ti-edit"></i></button> <button class="btn-icon" onclick="excluirInsumo('${i.id}')"><i class="ti ti-trash"></i></button></td></tr>`;
+  }).join('');
+}
+async function salvarInsumo(){
+  const id=document.getElementById('insumoId').value;
+  const nomeEl=document.getElementById('insumoNome');const nome=nomeEl.value.trim();
+  if(!nome){showFieldError(nomeEl,'Informe o nome do insumo');nomeEl.focus();return;}
+  const insumo={id:id||genId(),nome,tipo:document.getElementById('insumoTipo').value,unidade:document.getElementById('insumoUnidade').value,
+    estoqueAtual:parseFloat(document.getElementById('insumoEstoque').value)||0,estoqueMinimo:parseFloat(document.getElementById('insumoEstoqueMinimo').value)||0,
+    custo:parseFloat(document.getElementById('insumoCusto').value)||0,obs:document.getElementById('insumoObs').value.trim()};
+  if(id){const idx=DATA.insumos.findIndex(x=>x.id===id);DATA.insumos[idx]=insumo;}else DATA.insumos.push(insumo);
+  await saveCollection('insumos');logActivity(`Insumo "${esc(nome)}" ${id?'atualizado':'cadastrado'}`);
+  closeModal('modalInsumo');clearInsumoForm();renderInsumosAll();showToast(`Insumo ${id?'atualizado':'cadastrado'}!`);
+}
+function editInsumo(id){
+  const i=DATA.insumos.find(x=>x.id===id);if(!i)return;
+  document.getElementById('insumoId').value=i.id;document.getElementById('insumoNome').value=i.nome;document.getElementById('insumoTipo').value=i.tipo;
+  document.getElementById('insumoUnidade').value=i.unidade;document.getElementById('insumoEstoque').value=i.estoqueAtual||'';document.getElementById('insumoEstoqueMinimo').value=i.estoqueMinimo||'';
+  document.getElementById('insumoCusto').value=i.custo||'';document.getElementById('insumoObs').value=i.obs||'';
+  document.getElementById('modalInsumoTitle').textContent='Editar Insumo';openModal('modalInsumo');
+}
+async function excluirInsumo(id){
+  const i=DATA.insumos.find(x=>x.id===id);if(!i)return;
+  const vinculadas=DATA.aplicacoesInsumo.filter(a=>a.insumoId===id).length;
+  let msg=`Excluir o insumo "${esc(i.nome)}"?`;
+  if(vinculadas)msg+=`\n\nATENÇÃO: existem ${vinculadas} aplicação(ões) registradas com este insumo — o histórico será mantido.`;
+  if(!confirm(msg))return;
+  DATA.insumos=DATA.insumos.filter(x=>x.id!==id);
+  await saveCollection('insumos');logActivity(`Insumo "${esc(i.nome)}" excluído`);renderInsumosAll();showToast('Insumo excluído','ti-trash');
+}
+function clearInsumoForm(){clearAllFieldErrors();['insumoId','insumoNome','insumoEstoque','insumoEstoqueMinimo','insumoCusto','insumoObs'].forEach(id=>document.getElementById(id).value='');document.getElementById('insumoTipo').value='semente';document.getElementById('insumoUnidade').value='kg';document.getElementById('modalInsumoTitle').textContent='Novo Insumo';}
+function populateInsumoSelect(){
+  const sel=document.getElementById('aplicacaoInsumoId');if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML=DATA.insumos.length?DATA.insumos.map(i=>`<option value="${i.id}">${esc(i.nome)}</option>`).join(''):'<option value="">Nenhum insumo cadastrado</option>';
+  if(cur)sel.value=cur;
+}
+function populateSafraSelectForAplicacao(){
+  const sel=document.getElementById('aplicacaoSafraId');if(!sel)return;
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Aplicação geral / sem safra</option>'+DATA.safras.map(s=>`<option value="${s.id}">${esc(s.cultura)}${s.variedade?' ('+esc(s.variedade)+')':''}</option>`).join('');
+  if(cur)sel.value=cur;
+}
+function atualizarResumoAplicacao(){
+  const insumo=DATA.insumos.find(i=>i.id===document.getElementById('aplicacaoInsumoId').value);
+  const qtd=parseFloat(document.getElementById('aplicacaoQuantidade').value)||0;
+  const resumo=document.getElementById('aplicacaoResumo');if(!resumo)return;
+  if(!insumo){resumo.textContent='';return;}
+  const custo=qtd*(insumo.custo||0);
+  let txt=`Custo estimado: R$ ${custo.toFixed(2)} · Estoque atual: ${insumo.estoqueAtual}`;
+  if(qtd>insumo.estoqueAtual)txt+=' — ⚠ quantidade maior que o estoque disponível';
+  resumo.textContent=txt;
+}
+function clearAplicacaoForm(){
+  ['aplicacaoId','aplicacaoQuantidade','aplicacaoObs'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('aplicacaoData').value=new Date().toISOString().split('T')[0];
+  populateInsumoSelect();populateSafraSelectForAplicacao();
+  document.getElementById('aplicacaoResumo').textContent='';
+}
+async function salvarAplicacao(){
+  const insumoId=document.getElementById('aplicacaoInsumoId').value;
+  if(!insumoId){showToast('Selecione um insumo','ti-alert-triangle');return;}
+  const insumo=DATA.insumos.find(i=>i.id===insumoId);if(!insumo)return;
+  const quantidade=parseFloat(document.getElementById('aplicacaoQuantidade').value);
+  if(!quantidade){showToast('Informe a quantidade','ti-alert-triangle');return;}
+  const safraId=document.getElementById('aplicacaoSafraId').value;
+  const custoTotal=quantidade*(insumo.custo||0);
+  const aplicacao={id:genId(),insumoId,safraId:safraId||'',quantidade,custoTotal,
+    data:document.getElementById('aplicacaoData').value||new Date().toISOString().split('T')[0],
+    obs:document.getElementById('aplicacaoObs').value.trim()};
+  DATA.aplicacoesInsumo.unshift(aplicacao);
+  insumo.estoqueAtual=(insumo.estoqueAtual||0)-quantidade;
+  await saveCollection('aplicacoesInsumo');await saveCollection('insumos');
+  logActivity(`Aplicação de ${esc(insumo.nome)} registrada (${quantidade} ${insumo.unidade})`);
+  closeModal('modalAplicacaoInsumo');clearAplicacaoForm();renderInsumosAll();renderSafrasAll();showToast('Aplicação registrada!');
+}
+async function excluirAplicacao(id){
+  const a=DATA.aplicacoesInsumo.find(x=>x.id===id);if(!a)return;
+  if(!confirm('Excluir este registro de aplicação? O estoque do insumo será devolvido.'))return;
+  const insumo=DATA.insumos.find(i=>i.id===a.insumoId);
+  if(insumo)insumo.estoqueAtual=(insumo.estoqueAtual||0)+a.quantidade;
+  DATA.aplicacoesInsumo=DATA.aplicacoesInsumo.filter(x=>x.id!==id);
+  await saveCollection('aplicacoesInsumo');if(insumo)await saveCollection('insumos');
+  logActivity('Aplicação de insumo excluída');renderInsumosAll();renderSafrasAll();showToast('Aplicação excluída','ti-trash');
+}
+function renderAplicacoes(){
+  const tb=document.getElementById('tbAplicacoes');if(!tb)return;
+  const list=[...DATA.aplicacoesInsumo].sort((a,b)=>(b.data||'').localeCompare(a.data||'')).slice(0,30);
+  if(!list.length){tb.innerHTML='<tr><td colspan="6"><div class="empty-state"><i class="ti ti-clipboard-list"></i><p>Nenhuma aplicação registrada</p></div></td></tr>';return;}
+  tb.innerHTML=list.map(a=>{
+    const insumo=DATA.insumos.find(i=>i.id===a.insumoId);
+    const safra=DATA.safras.find(s=>s.id===a.safraId);
+    return `<tr><td style="white-space:nowrap;font-size:12px">${a.data}</td><td>${esc(insumo?insumo.nome:'—')}</td><td>${safra?esc(safra.cultura):'<span style="color:var(--text-muted)">Geral</span>'}</td><td>${a.quantidade} ${insumo?insumo.unidade:''}</td><td>${mFmt(a.custoTotal)}</td><td><button class="btn-icon" onclick="excluirAplicacao('${a.id}')"><i class="ti ti-trash"></i></button></td></tr>`;
+  }).join('');
+}
+function updateInsumosBadge(){
+  const badge=document.getElementById('badgeInsumos');if(!badge)return;
+  const count=DATA.insumos.filter(i=>statusEstoque(i)==='baixo').length;
+  badge.style.display=count>0?'inline-block':'none';badge.textContent=count;
+}
+function renderInsumosKpis(){
+  const hoje=new Date().toISOString().split('T')[0];
+  const gastoMes=DATA.aplicacoesInsumo.filter(a=>(a.data||'').slice(0,7)===hoje.slice(0,7)).reduce((s,a)=>s+(a.custoTotal||0),0);
+  const estoqueBaixo=DATA.insumos.filter(i=>statusEstoque(i)==='baixo').length;
+  const areaAtiva=DATA.safras.filter(s=>s.status==='plantada').reduce((s,x)=>s+(x.areaPlantada||0),0);
+  const custoTotalAtivo=DATA.safras.filter(s=>s.status==='plantada').reduce((s,x)=>s+computeCustoInsumoPorSafra(x.id),0);
+  const custoHa=areaAtiva?custoTotalAtivo/areaAtiva:0;
+  const desde=addDays(hoje,-30);
+  const porInsumo={};
+  DATA.aplicacoesInsumo.filter(a=>(a.data||'')>=desde).forEach(a=>{porInsumo[a.insumoId]=(porInsumo[a.insumoId]||0)+(a.custoTotal||0);});
+  const topEntry=Object.entries(porInsumo).sort((a,b)=>b[1]-a[1])[0];
+  const topInsumo=topEntry?DATA.insumos.find(i=>i.id===topEntry[0]):null;
+  document.getElementById('insumosKpis').innerHTML=[
+    kpiCard('ti-report-money','#F59E0B',mFmt(gastoMes),'Gasto em Insumos (mês)'),
+    kpiCard('ti-alert-triangle','#EF4444',estoqueBaixo,'Itens com Estoque Baixo'),
+    kpiCard('ti-ruler-2','#3B82F6',mFmt(custoHa),'Custo de Insumos / ha'),
+    kpiCard('ti-trophy','#8B5CF6',topInsumo?esc(topInsumo.nome):'—','Insumo Mais Usado (30d)')
+  ].join('');
+  updateInsumosBadge();
+}
+function renderInsumosAll(){renderInsumos();renderAplicacoes();renderInsumosKpis();}
+
+// ========== MAPA DA FAZENDA (CERCAS VIRTUAIS) ==========
+let mapaFazenda=null,cercasFeatureGroup=null,drawControlMapa=null,osmLayer=null,satLayer=null,cercaLayers={};
+let _pendingCercaLayer=null,_editingCercaId=null,_redesenhandoCercaId=null,_pendingAreaHa=0;
+let _marcadorBuscaMapa=null,_buscaMapaTimer=null;
+const CERCA_CORES_PADRAO={plantio:'#10B981',pasto:'#F59E0B',outra:'#3B82F6'};
+function categoriaLabelCerca(cat){return{plantio:'Plantio',pasto:'Pasto',outra:'Outra'}[cat]||cat;}
+function initMapaFazenda(){
+  if(mapaFazenda)return;
+  delete L.Icon.Default.prototype._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl:'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+    iconUrl:'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+    shadowUrl:'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png'
+  });
+  const lat=DATA.config.latitude||-14.235,lng=DATA.config.longitude||-51.9253;
+  const zoomInicial=(DATA.config.latitude&&DATA.config.longitude)?16:4;
+  mapaFazenda=L.map('mapaFazenda').setView([lat,lng],zoomInicial);
+  osmLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(mapaFazenda);
+  satLayer=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri, Maxar, Earthstar Geographics'});
+  L.control.layers({'Mapa':osmLayer,'Satélite':satLayer}).addTo(mapaFazenda);
+  cercasFeatureGroup=new L.FeatureGroup().addTo(mapaFazenda);
+  drawControlMapa=new L.Control.Draw({
+    position:'topright',
+    draw:{polygon:{shapeOptions:{color:'#F59E0B'},allowIntersection:false,showArea:true},polyline:false,rectangle:false,circle:false,circlemarker:false,marker:false},
+    edit:false
+  });
+  mapaFazenda.addControl(drawControlMapa);
+  mapaFazenda.on(L.Draw.Event.CREATED,function(e){
+    const layer=e.layer;
+    cercasFeatureGroup.addLayer(layer);
+    const latlngs=layer.getLatLngs()[0];
+    const areaM2=(window.L&&L.GeometryUtil&&L.GeometryUtil.geodesicArea)?L.GeometryUtil.geodesicArea(latlngs):0;
+    const areaHa=areaM2/10000;
+    const redesenhandoId=_redesenhandoCercaId;_redesenhandoCercaId=null;
+    if(redesenhandoId){
+      const cerca=DATA.cercas.find(c=>c.id===redesenhandoId);
+      abrirModalCerca(cerca,layer,areaHa);
+    }else{
+      abrirModalCerca(null,layer,areaHa);
+    }
+  });
+  mapaFazenda.on(L.Draw.Event.DRAWSTOP,function(){
+    // se o usuário cancelou o "redesenhar" sem concluir o polígono, restaura a cerca original
+    if(_redesenhandoCercaId){_redesenhandoCercaId=null;renderCercasOnMap();}
+  });
+  renderCercasOnMap();
+}
+function renderCercasOnMap(){
+  if(!cercasFeatureGroup)return;
+  cercasFeatureGroup.clearLayers();
+  cercaLayers={};
+  DATA.cercas.forEach(c=>{
+    if(!c.pontos||c.pontos.length<3)return;
+    const layer=L.polygon(c.pontos,{color:c.cor||CERCA_CORES_PADRAO[c.categoria]||'#3B82F6',weight:2,fillOpacity:.25});
+    layer.bindPopup(`<strong>${esc(c.nome)}</strong><br>${categoriaLabelCerca(c.categoria)}${c.areaHectaresCalculada?' · '+c.areaHectaresCalculada.toFixed(2)+' ha':''}`);
+    layer.on('click',()=>layer.openPopup());
+    cercasFeatureGroup.addLayer(layer);
+    cercaLayers[c.id]=layer;
+  });
+}
+function atualizarVinculoCerca(){
+  const categoria=document.getElementById('cercaCategoria').value;
+  const sel=document.getElementById('cercaVinculoId');
+  const grupo=document.getElementById('cercaVinculoGroup');
+  if(!document.getElementById('cercaId').value)document.getElementById('cercaCor').value=CERCA_CORES_PADRAO[categoria]||'#3B82F6';
+  if(categoria==='plantio'){
+    sel.innerHTML='<option value="">Nenhum</option>'+DATA.talhoes.map(t=>`<option value="${t.id}">${esc(t.nome)}</option>`).join('');
+    grupo.style.display='block';
+  }else if(categoria==='pasto'){
+    sel.innerHTML='<option value="">Nenhum</option>'+DATA.piquetes.map(p=>`<option value="${p.id}">${esc(p.nome)}</option>`).join('');
+    grupo.style.display='block';
+  }else{
+    sel.innerHTML='<option value="">Nenhum</option>';
+    grupo.style.display='none';
+  }
+}
+function autoNomeCercaDoVinculo(){
+  const categoria=document.getElementById('cercaCategoria').value;
+  const vinculoId=document.getElementById('cercaVinculoId').value;
+  const nomeEl=document.getElementById('cercaNome');
+  if(!vinculoId||nomeEl.value.trim())return;
+  const item=categoria==='plantio'?DATA.talhoes.find(t=>t.id===vinculoId):DATA.piquetes.find(p=>p.id===vinculoId);
+  if(item)nomeEl.value=item.nome;
+}
+function abrirModalCerca(cerca,layer,areaHa){
+  clearAllFieldErrors();
+  document.getElementById('cercaId').value=cerca?cerca.id:'';
+  document.getElementById('cercaNome').value=cerca?cerca.nome:'';
+  document.getElementById('cercaCategoria').value=cerca?cerca.categoria:'plantio';
+  atualizarVinculoCerca();
+  if(cerca&&cerca.vinculoId)document.getElementById('cercaVinculoId').value=cerca.vinculoId;
+  document.getElementById('cercaCor').value=cerca?(cerca.cor||CERCA_CORES_PADRAO[cerca.categoria]||'#3B82F6'):(CERCA_CORES_PADRAO['plantio']);
+  const areaMostrar=areaHa||(cerca?cerca.areaHectaresCalculada:0)||0;
+  document.getElementById('cercaAreaCalculada').value=areaMostrar?areaMostrar.toFixed(2)+' ha':'—';
+  document.getElementById('cercaObs').value=cerca?(cerca.obs||''):'';
+  document.getElementById('modalCercaTitle').textContent=cerca?'Editar Cerca Virtual':'Nova Cerca Virtual';
+  _pendingCercaLayer=layer||null;
+  _editingCercaId=cerca?cerca.id:null;
+  _pendingAreaHa=areaHa||0;
+  openModal('modalCerca');
+}
+function cancelarCerca(){
+  closeModal('modalCerca');
+  _pendingCercaLayer=null;_editingCercaId=null;_pendingAreaHa=0;_redesenhandoCercaId=null;
+  renderCercasOnMap();
+}
+async function salvarCerca(){
+  const nomeEl=document.getElementById('cercaNome');const nome=nomeEl.value.trim();
+  if(!nome){showFieldError(nomeEl,'Informe o nome da cerca');nomeEl.focus();return;}
+  const categoria=document.getElementById('cercaCategoria').value;
+  const vinculoId=document.getElementById('cercaVinculoId').value;
+  const cor=document.getElementById('cercaCor').value;
+  const obs=document.getElementById('cercaObs').value.trim();
+  let pontos=null;
+  if(_pendingCercaLayer)pontos=_pendingCercaLayer.getLatLngs()[0].map(p=>({lat:p.lat,lng:p.lng}));
+  if(_editingCercaId){
+    const idx=DATA.cercas.findIndex(c=>c.id===_editingCercaId);
+    if(idx<0)return;
+    const cerca={...DATA.cercas[idx],nome,categoria,vinculoId,cor,obs};
+    if(pontos){cerca.pontos=pontos;cerca.areaHectaresCalculada=_pendingAreaHa||0;}
+    DATA.cercas[idx]=cerca;
+  }else{
+    if(!pontos){showToast('Desenhe a área no mapa antes de salvar','ti-alert-triangle');return;}
+    DATA.cercas.push({id:genId(),nome,categoria,vinculoId,cor,obs,pontos,areaHectaresCalculada:_pendingAreaHa||0,criadoEm:new Date().toISOString()});
+  }
+  await saveCollection('cercas');
+  logActivity(`Cerca virtual "${esc(nome)}" ${_editingCercaId?'atualizada':'cadastrada'}`);
+  closeModal('modalCerca');
+  _pendingCercaLayer=null;_editingCercaId=null;_pendingAreaHa=0;
+  renderCercasOnMap();renderCercasList();renderMapaKpis();
+  showToast('Cerca virtual salva!');
+}
+function editarCercaMetadados(id){
+  const c=DATA.cercas.find(x=>x.id===id);if(!c)return;
+  abrirModalCerca(c,null,null);
+}
+function editarCercaGeometria(id){
+  const cerca=DATA.cercas.find(c=>c.id===id);if(!cerca||!mapaFazenda)return;
+  const oldLayer=cercaLayers[id];
+  if(oldLayer)cercasFeatureGroup.removeLayer(oldLayer);
+  _redesenhandoCercaId=id;
+  showToast('Desenhe a nova área da cerca no mapa','ti-pencil');
+  new L.Draw.Polygon(mapaFazenda,drawControlMapa.options.draw.polygon).enable();
+}
+async function excluirCerca(id){
+  const c=DATA.cercas.find(x=>x.id===id);if(!c)return;
+  if(!confirm(`Excluir a cerca "${esc(c.nome)}"?`))return;
+  DATA.cercas=DATA.cercas.filter(x=>x.id!==id);
+  await saveCollection('cercas');logActivity(`Cerca virtual "${esc(c.nome)}" excluída`);
+  renderCercasOnMap();renderCercasList();renderMapaKpis();showToast('Cerca excluída','ti-trash');
+}
+function localizarCerca(id){
+  const layer=cercaLayers[id];if(!layer||!mapaFazenda)return;
+  mapaFazenda.fitBounds(layer.getBounds(),{maxZoom:18});
+  layer.openPopup();
+}
+function renderCercasList(){
+  const tb=document.getElementById('tbCercas');if(!tb)return;
+  if(!DATA.cercas.length){tb.innerHTML='<tr><td colspan="5"><div class="empty-state"><i class="ti ti-map-pin"></i><p>Nenhuma cerca virtual cadastrada ainda</p></div></td></tr>';return;}
+  tb.innerHTML=DATA.cercas.map(c=>{
+    let vinculoNome='—';
+    if(c.categoria==='plantio'&&c.vinculoId){const t=DATA.talhoes.find(x=>x.id===c.vinculoId);vinculoNome=t?esc(t.nome):'—';}
+    else if(c.categoria==='pasto'&&c.vinculoId){const p=DATA.piquetes.find(x=>x.id===c.vinculoId);vinculoNome=p?esc(p.nome):'—';}
+    return `<tr><td><span class="mapa-legend-dot" style="background:${c.cor||CERCA_CORES_PADRAO[c.categoria]};margin-right:6px"></span><strong>${esc(c.nome)}</strong></td><td>${categoriaLabelCerca(c.categoria)}</td><td>${vinculoNome}</td><td>${c.areaHectaresCalculada?c.areaHectaresCalculada.toFixed(2):'—'}</td><td><button class="btn-icon" title="Localizar no mapa" onclick="localizarCerca('${c.id}')"><i class="ti ti-focus-2"></i></button> <button class="btn-icon" title="Redesenhar área" onclick="editarCercaGeometria('${c.id}')"><i class="ti ti-pencil"></i></button> <button class="btn-icon" title="Editar dados" onclick="editarCercaMetadados('${c.id}')"><i class="ti ti-edit"></i></button> <button class="btn-icon" onclick="excluirCerca('${c.id}')"><i class="ti ti-trash"></i></button></td></tr>`;
+  }).join('');
+}
+function renderMapaKpis(){
+  const total=DATA.cercas.length;
+  const areaTotal=DATA.cercas.reduce((s,c)=>s+(c.areaHectaresCalculada||0),0);
+  const plantio=DATA.cercas.filter(c=>c.categoria==='plantio').length;
+  const pasto=DATA.cercas.filter(c=>c.categoria==='pasto').length;
+  document.getElementById('mapaKpis').innerHTML=[
+    kpiCard('ti-map-pin','#F59E0B',total,'Cercas Cadastradas'),
+    kpiCard('ti-ruler-2','#3B82F6',areaTotal.toFixed(1)+' ha','Área Total Cercada'),
+    kpiCard('ti-leaf','#10B981',plantio,'Cercas de Plantio'),
+    kpiCard('ti-map-2','#8B5CF6',pasto,'Cercas de Pasto')
+  ].join('');
+}
+function centralizarNaMinhaLocalizacao(){
+  if(!mapaFazenda)return;
+  if(!navigator.geolocation){showToast('Geolocalização não suportada neste navegador','ti-alert-triangle');return;}
+  showToast('Obtendo localização...','ti-current-location');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    mapaFazenda.setView([pos.coords.latitude,pos.coords.longitude],17);
+  },()=>{showToast('Não foi possível obter sua localização','ti-alert-triangle');},{enableHighAccuracy:true,timeout:10000});
+}
+function centralizarNaSede(){
+  if(!mapaFazenda)return;
+  if(DATA.config.latitude&&DATA.config.longitude)mapaFazenda.setView([DATA.config.latitude,DATA.config.longitude],16);
+  else showToast('Defina a latitude/longitude da sede em Configurações','ti-alert-triangle');
+}
+function iniciarDesenhoCerca(){
+  if(!mapaFazenda||!drawControlMapa){showToast('Aguarde o mapa carregar e tente novamente','ti-alert-triangle');return;}
+  _redesenhandoCercaId=null;
+  new L.Draw.Polygon(mapaFazenda,drawControlMapa.options.draw.polygon).enable();
+  showToast('Marque os pontos da área no mapa e dê duplo clique para fechar','ti-pencil');
+}
+async function buscarLocalNoMapa(){
+  const input=document.getElementById('mapaBuscaInput');
+  const query=input.value.trim();
+  const resultadosEl=document.getElementById('mapaBuscaResultados');
+  if(!query){resultadosEl.hidden=true;return;}
+  resultadosEl.hidden=false;
+  resultadosEl.innerHTML='<div class="mapa-busca-vazio"><i class="ti ti-loader-2"></i> Buscando...</div>';
+  try{
+    const resp=await fetch('https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=6&q='+encodeURIComponent(query));
+    if(!resp.ok)throw new Error('Falha na busca');
+    const resultados=await resp.json();
+    if(!resultados.length){
+      resultadosEl.innerHTML='<div class="mapa-busca-vazio">Nenhum local encontrado</div>';
+      return;
+    }
+    resultadosEl.innerHTML=resultados.map((r,i)=>`<div class="mapa-busca-item" onclick="selecionarResultadoBusca(${i})"><i class="ti ti-map-pin"></i><span>${esc(r.display_name)}</span></div>`).join('');
+    window._mapaBuscaResultadosCache=resultados;
+  }catch(e){
+    console.error(e);
+    resultadosEl.innerHTML='<div class="mapa-busca-vazio">Erro ao buscar — verifique sua conexão</div>';
+  }
+}
+function selecionarResultadoBusca(i){
+  const r=(window._mapaBuscaResultadosCache||[])[i];
+  if(!r||!mapaFazenda)return;
+  const lat=parseFloat(r.lat),lng=parseFloat(r.lon);
+  mapaFazenda.setView([lat,lng],15);
+  if(_marcadorBuscaMapa)mapaFazenda.removeLayer(_marcadorBuscaMapa);
+  _marcadorBuscaMapa=L.marker([lat,lng]).addTo(mapaFazenda).bindPopup(esc(r.display_name)).openPopup();
+  document.getElementById('mapaBuscaResultados').hidden=true;
+  document.getElementById('mapaBuscaInput').value=r.display_name;
+}
+document.addEventListener('click',function(e){
+  const dentro=e.target.closest&&e.target.closest('.mapa-busca');
+  if(!dentro){const r=document.getElementById('mapaBuscaResultados');if(r)r.hidden=true;}
+});
+function renderMapa(){
+  initMapaFazenda();
+  renderCercasOnMap();
+  renderCercasList();
+  renderMapaKpis();
+  setTimeout(()=>{if(mapaFazenda)mapaFazenda.invalidateSize();},100);
+}
 
 // ========== FINANCEIRO / CONTAS ==========
 function renderContas(filter=currentContaFilter){
@@ -1111,9 +2798,41 @@ function refreshDashboard(){
     if(window._chartCat)window._chartCat.destroy();
     window._chartCat=new Chart(ctx,{type:'doughnut',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:['#F59E0B','#3B82F6','#10B981','#8B5CF6','#F97316','#14B8A6']}]},options:{responsive:true,plugins:{legend:{position:'bottom'}}}});
   }
-  const act=document.getElementById('dashActivity');
-  act.innerHTML=DATA.activity.length?DATA.activity.slice(0,8).map(a=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px"><strong>${esc(a.author)}</strong> — ${esc(a.msg)}<div style="color:var(--text-muted);font-size:11px">${new Date(a.ts).toLocaleString('pt-BR')}</div></div>`).join(''):'<div class="empty-state" style="padding:20px"><i class="ti ti-activity"></i><p>Sem atividade ainda</p></div>';
   document.getElementById('badgeVencidas').style.display=vencidas>0?'inline-block':'none';document.getElementById('badgeVencidas').textContent=vencidas;
+  renderDashCercasOcupacao();
+  renderChartPiquetes();
+}
+function ocupacaoCerca(c){
+  if(c.categoria==='pasto'){
+    const p=DATA.piquetes.find(x=>x.id===c.vinculoId);
+    if(!p)return '—';
+    const cab=cabecasNoPiquete(p.nome);
+    return `${cab} cabeça${cab===1?'':'s'}`;
+  }
+  if(c.categoria==='plantio'){
+    const t=DATA.talhoes.find(x=>x.id===c.vinculoId);
+    if(!t)return '—';
+    const safra=safraAtivaDoTalhao(t.id);
+    return safra?`${esc(safra.cultura)} — ${(safra.areaPlantada||0).toFixed(1)} ha`:'Sem safra ativa';
+  }
+  return '—';
+}
+function renderDashCercasOcupacao(){
+  const tb=document.getElementById('tbDashCercas');if(!tb)return;
+  if(!DATA.cercas.length){tb.innerHTML='<tr><td colspan="4"><div class="empty-state" style="padding:16px"><i class="ti ti-map-pin"></i><p>Nenhuma cerca virtual cadastrada</p></div></td></tr>';return;}
+  tb.innerHTML=DATA.cercas.map(c=>{
+    let vinculoNome='—';
+    if(c.categoria==='plantio'&&c.vinculoId){const t=DATA.talhoes.find(x=>x.id===c.vinculoId);vinculoNome=t?esc(t.nome):'—';}
+    else if(c.categoria==='pasto'&&c.vinculoId){const p=DATA.piquetes.find(x=>x.id===c.vinculoId);vinculoNome=p?esc(p.nome):'—';}
+    return `<tr><td><span class="mapa-legend-dot" style="background:${c.cor||CERCA_CORES_PADRAO[c.categoria]||'#3B82F6'};margin-right:6px"></span><strong>${esc(c.nome)}</strong></td><td>${categoriaLabelCerca(c.categoria)}</td><td>${vinculoNome}</td><td>${ocupacaoCerca(c)}</td></tr>`;
+  }).join('');
+}
+function renderChartPiquetes(){
+  const ctx=document.getElementById('chartPiquetes');if(!ctx)return;
+  const labels=DATA.piquetes.map(p=>p.nome);
+  const data=DATA.piquetes.map(p=>cabecasNoPiquete(p.nome));
+  if(window._chartPiquetes)window._chartPiquetes.destroy();
+  window._chartPiquetes=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Cabeças',data,backgroundColor:'#F59E0B'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
 }
 
 // ========== RELATÓRIOS ==========
@@ -1146,7 +2865,8 @@ function renderRelatorios(){
 
 // ========== CONFIGURAÇÕES ==========
 async function salvarConfig(){
-  DATA.config={nomeFazenda:document.getElementById('cfgNomeFazenda').value.trim(),cpfCnpj:document.getElementById('cfgCpfCnpj').value,telefone:document.getElementById('cfgTelefone').value,unidade:document.getElementById('cfgUnidade').value,endereco:document.getElementById('cfgEndereco').value.trim()};
+  DATA.config={nomeFazenda:document.getElementById('cfgNomeFazenda').value.trim(),cpfCnpj:document.getElementById('cfgCpfCnpj').value,telefone:document.getElementById('cfgTelefone').value,unidade:document.getElementById('cfgUnidade').value,endereco:document.getElementById('cfgEndereco').value.trim(),
+    latitude:parseFloat(document.getElementById('cfgLatitude').value)||null,longitude:parseFloat(document.getElementById('cfgLongitude').value)||null};
   await saveCollection('config');
   try{await db.collection('fazendas').doc(fazendaId).update({nome:DATA.config.nomeFazenda||''});document.getElementById('sidebarFazendaNome').textContent=DATA.config.nomeFazenda;}catch(e){}
   showToast('Configurações salvas!');
@@ -1154,6 +2874,7 @@ async function salvarConfig(){
 function loadConfig(){
   const c=DATA.config;
   document.getElementById('cfgNomeFazenda').value=c.nomeFazenda||'';document.getElementById('cfgCpfCnpj').value=c.cpfCnpj||'';document.getElementById('cfgTelefone').value=c.telefone||'';document.getElementById('cfgUnidade').value=c.unidade||'arroba';document.getElementById('cfgEndereco').value=c.endereco||'';
+  document.getElementById('cfgLatitude').value=c.latitude||'';document.getElementById('cfgLongitude').value=c.longitude||'';
   document.getElementById('fazendaCodeDisplay').textContent=fazendaId;
 }
 
